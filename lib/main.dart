@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vomi/views/character/character_select_page.dart';
 import 'package:vomi/core/theme/theme.dart';
 
 void main() {
@@ -13,7 +12,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: AppTheme.lightTheme,
-      home: const CharacterSelectPage(userName: '영준'),
     );
   }
 }
