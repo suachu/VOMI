@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'selectionPage.dart';
+import 'package:vomi/views/character/character_select_page.dart';
+import 'package:vomi/core/theme/theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -8,15 +9,12 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-  debugShowCheckedModeBanner: false,
-  home: SelectionPage(
-    userName: '영준',
-  ),
-);
+      theme: AppTheme.lightTheme,
+      home: const CharacterSelectPage(userName: '영준'),
+    );
   }
 }
 
