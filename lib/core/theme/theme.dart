@@ -19,10 +19,6 @@ class AppTheme {
   );
 }
 
-
-
-
-
 //쓰고자 하는 파일 안에 이거 붙여넣고 
 
 //ColorScheme colors = Theme.of(context).colorScheme;
