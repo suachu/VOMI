@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:vomi/core/theme/theme.dart';
+import 'package:vomi/core/theme/colors.dart';
+import 'package:vomi/views/main/feed_screen.dart';
+
+
 
 void main() {
   runApp(const MyApp());
@@ -11,7 +14,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: AppTheme.lightTheme,
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        scaffoldBackgroundColor: AppColors.background
+        ),
+      home: HomeScreen()
     );
   }
 }
