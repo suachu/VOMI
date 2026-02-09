@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vomi/core/theme/colors.dart';
 import 'package:vomi/core/theme/text_styles.dart';
+import 'package:vomi/views/main/facility_models.dart';
 
 /// ---------- Post Blocks ----------
 
@@ -26,6 +27,11 @@ class Post {
   final String date;
   final String location;
 
+  final Facility facility;
+  final int likeCount;
+  final int commentCount;
+  final int shareCount;
+
   final ImageProvider emojiImage;
   final List<PostBlock> blocks;
 
@@ -35,6 +41,10 @@ class Post {
     required this.title,
     required this.date,
     required this.location,
+    required this.facility,
+    required this.likeCount,
+    required this.commentCount,
+    required this.shareCount,
     required this.emojiImage,
     required this.blocks,
   });

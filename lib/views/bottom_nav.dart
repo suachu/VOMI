@@ -1,33 +1,18 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const MyApp());
+class BottomNavBar extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: NavDemoPage(),
-    );
-  }
-}
-
-class NavDemoPage extends StatefulWidget {
-  const NavDemoPage({super.key});
-
-  @override
-  State<NavDemoPage> createState() => _NavDemoPageState();
-}
-
-class _NavDemoPageState extends State<NavDemoPage> {
-  int? selectedIndex; // ✅ 처음엔 off만
+  const BottomNavBar({
+    super.key,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
 
   // ✅ 네비게이션 바
   static const double navW = 402;
   static const double navH = 94.5;
-  static const double navLeft = 20;
   static const double navBottom = 0;
 
   // ✅ 아이콘 터치(슬롯) 영역: 66 x 70
@@ -57,7 +42,7 @@ class _NavDemoPageState extends State<NavDemoPage> {
       offPath: 'assets/images/list_off.png',
       onPath: 'assets/images/list_on.png',
       left: 112.34,
-      top: 24.22,
+      top: 28,
       w: 20,
       h: 15.56,
     ),
@@ -89,40 +74,45 @@ class _NavDemoPageState extends State<NavDemoPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFEFEFEF),
-      body: Stack(
-        children: [
-          const Positioned.fill(child: Center(child: Text("PAGE"))),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxW = constraints.maxWidth;
+        final double navWScaled = maxW < navW ? maxW - 24 : navW;
+        final double scale = navWScaled / navW;
+        final double navHScaled = navH * scale;
 
-          Positioned(
-            left: navLeft,
-            bottom: navBottom,
-            child: SafeArea(
-              top: false,
+        return SizedBox(
+          height: navHScaled,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: navBottom * scale,
+              ),
               child: Container(
-                width: navW,
-                height: navH,
+                width: navWScaled,
+                height: navHScaled,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.zero,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.08),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
+                      blurRadius: 14 * scale,
+                      offset: Offset(0, 6 * scale),
                     ),
                   ],
                 ),
                 child: Stack(
                   children: [
                     // ✅ 파란 원: 선택된 아이콘 하나만 (아이콘보다 아래)
-                    if (selectedIndex != null)
+                    if (selectedIndex >= 0)
                       _BubbleOnly(
-                        spec: specs[selectedIndex!],
-                        bubble: bubble,
+                        spec: specs[selectedIndex],
+                        bubble: bubble * scale,
                         bubbleColor: bubbleColor,
-                        lift: lift,
+                        lift: lift * scale,
+                        scale: scale,
                       ),
 
                     // ✅ 아이콘 5개: "66x70 터치영역" 적용
@@ -130,30 +120,37 @@ class _NavDemoPageState extends State<NavDemoPage> {
                       final it = specs[i];
                       final bool selected = selectedIndex == i;
 
+                      final double itLeft = it.left * scale;
+                      final double itTop = it.top * scale;
+                      final double itW = it.w * scale;
+                      final double itH = it.h * scale;
+
                       // ✅ 아이콘의 "중심" 좌표 (원 계산/이동에 사용)
-                      final double iconCenterX = it.left + it.w / 2;
-                      final double iconCenterY = it.top + it.h / 2;
+                      final double iconCenterX = itLeft + itW / 2;
+                      final double iconCenterY = itTop + itH / 2;
 
                       // ✅ 66x70 터치영역을 아이콘 중심 기준으로 배치
-                      final double slotLeft = iconCenterX - iconSlotW / 2;
-                      final double slotTop = iconCenterY - iconSlotH / 2;
+                      final double slotLeft =
+                          iconCenterX - (iconSlotW * scale) / 2;
+                      final double slotTop =
+                          iconCenterY - (iconSlotH * scale) / 2;
 
                       return AnimatedPositioned(
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeOut,
                         left: slotLeft,
-                        top: selected ? slotTop - lift : slotTop,
+                        top: selected ? slotTop - (lift * scale) : slotTop,
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => setState(() => selectedIndex = i),
+                          onTap: () => onSelect(i),
                           child: SizedBox(
-                            width: iconSlotW,
-                            height: iconSlotH,
+                            width: iconSlotW * scale,
+                            height: iconSlotH * scale,
                             child: Center(
                               child: Image.asset(
                                 selected ? it.onPath : it.offPath,
-                                width: it.w,
-                                height: it.h,
+                                width: itW,
+                                height: itH,
                                 fit: BoxFit.contain,
                               ),
                             ),
@@ -166,8 +163,8 @@ class _NavDemoPageState extends State<NavDemoPage> {
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -178,18 +175,20 @@ class _BubbleOnly extends StatelessWidget {
   final double bubble;
   final Color bubbleColor;
   final double lift;
+  final double scale;
 
   const _BubbleOnly({
     required this.spec,
     required this.bubble,
     required this.bubbleColor,
     required this.lift,
+    required this.scale,
   });
 
   @override
   Widget build(BuildContext context) {
-    final double centerX = spec.left + spec.w / 2;
-    final double centerY = spec.top + spec.h / 2;
+    final double centerX = (spec.left * scale) + (spec.w * scale) / 2;
+    final double centerY = (spec.top * scale) + (spec.h * scale) / 2;
 
     final double bubbleLeft = centerX - bubble / 2;
     final double bubbleTop = centerY - bubble / 2 - lift;

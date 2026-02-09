@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vomi/core/theme/colors.dart';
-import 'package:vomi/views/main/feed_screen.dart';
+import 'package:vomi/views/main/main_shell.dart';
 
 
 
@@ -18,8 +18,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.background
         ),
-      home: HomeScreen()
+      home: MainShell()
     );
   }
 }
-

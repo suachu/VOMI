@@ -59,24 +59,25 @@ class _TopBarState extends State<TopBar> {
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.logoImage != null)
-                        Image(
-                          image: widget.logoImage!,
-                          height: 26,
-                          fit: BoxFit.contain,
-                        )
-                      else
-                        const Text(
-                          'Vomi',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.2,
-                          ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.selectedLabel == '내 친구')
+                      const Text(
+                        '친구소식',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
                         ),
+                      )
+                    else if (widget.logoImage != null)
+                      Image(
+                        image: widget.logoImage!,
+                        height: 40,
+                        width: 80,
+                        fit: BoxFit.contain,
+                      ),
                       const SizedBox(width: 6),
                       AnimatedRotation(
                         turns: _isOpen ? 0.25 : 0.0,
@@ -98,7 +99,12 @@ class _TopBarState extends State<TopBar> {
               // RIGHT: plus button (NO ripple)
               _NoRippleIconButton(
                 onTap: widget.onAddPressed,
-                child: const Icon(Icons.add, size: 20, color: Colors.black),
+                child: const Icon(
+                  Icons.add,
+                  size: 20,
+                  weight: 700,
+                  color: Colors.black,
+                ),
               ),
               const SizedBox(width: 12),
             ],
@@ -127,7 +133,7 @@ class _DropdownDialog extends StatelessWidget {
         ),
         Positioned(
           left: 12,
-          top: 108,
+          top: 60,
           child: Container(
             width: 260,
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -216,13 +222,13 @@ class _NoRippleIconButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 34,
-        height: 34,
+        width: 28,
+        height: 28,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(7),
           border: Border.all(
-            color: Colors.black.withOpacity(0.65),
-            width: 1.3,
+            color: Color.fromRGBO(19, 21, 24, 1),
+            width: 2,
           ),
         ),
         alignment: Alignment.center,
