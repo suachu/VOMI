@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "382612487950",
+    "project_id": "vomi-25c38",
+    "storage_bucket": "vomi-25c38.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:382612487950:android:e393f0f640822d8ccd215f",
+        "android_client_info": {
+          "package_name": "com.example.vomi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUn3y-B1IDKc0ICxuvwsdS8ifVMnlUPG0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

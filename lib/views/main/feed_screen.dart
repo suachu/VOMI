@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vomi/core/theme/colors.dart';
+import 'package:vomi/views/auth/pages/login_method_page.dart';
 import 'package:vomi/views/main/facility_detail_screen.dart';
 import 'package:vomi/views/main/facility_models.dart';
 import 'package:vomi/views/main/post_actions.dart';
@@ -18,6 +20,14 @@ class _HomeScreenState extends State<HomeScreen> {
   String filter = '전체';
   bool _isLiked = false;
   bool _isSaved = false;
+
+  bool get _isLoggedIn => FirebaseAuth.instance.currentUser != null;
+
+  Future<void> _promptLogin() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const LoginMethodPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +133,13 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.background,
       appBar: TopBar(
         selectedLabel: filter,
-        onSelect: (v) => setState(() => filter = v),
+        onSelect: (v) {
+          if (v == '내 친구' && !_isLoggedIn) {
+            _promptLogin();
+            return;
+          }
+          setState(() => filter = v);
+        },
         onAddPressed: () {
           // TODO: create post
         },
@@ -144,8 +160,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 post: post,
                 isLiked: _isLiked,
                 isSaved: _isSaved,
-                onToggleLike: () => setState(() => _isLiked = !_isLiked),
-                onToggleSave: () => setState(() => _isSaved = !_isSaved),
+                onToggleLike: () {
+                  if (!_isLoggedIn) {
+                    _promptLogin();
+                    return;
+                  }
+                  setState(() => _isLiked = !_isLiked);
+                },
+                onToggleSave: () {
+                  if (!_isLoggedIn) {
+                    _promptLogin();
+                    return;
+                  }
+                  setState(() => _isSaved = !_isSaved);
+                },
                 onOpenFacility: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(

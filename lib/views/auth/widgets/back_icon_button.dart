@@ -14,11 +14,10 @@ class BackIconButton extends StatelessWidget {
         width: 35,
         height: 35,
         child: Center(
-          child: Image.asset(
-            'assets/images/b.png',
-            width: 18,
-            height: 18,
-            fit: BoxFit.contain,
+          child: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 18,
+            color: Colors.black,
           ),
         ),
       ),

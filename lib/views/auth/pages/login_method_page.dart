@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:vomi/services/auth_service.dart';
+import 'package:vomi/views/main/main_shell.dart';
 
 import '../widgets/back_icon_button.dart';
 import '../widgets/home_indicator.dart';
@@ -16,12 +18,33 @@ class LoginMethodPage extends StatefulWidget {
 
 class _LoginMethodPageState extends State<LoginMethodPage> {
   bool _phonePressedFlash = false;
+  bool _isGoogleLoading = false;
 
   void _goPhoneJoin(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const PhoneJoinPage()),
     );
+  }
+
+  Future<void> _signInWithGoogle(BuildContext context) async {
+    if (_isGoogleLoading) return;
+    setState(() => _isGoogleLoading = true);
+    try {
+      await AuthService().signInWithGoogle();
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainShell()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('구글 로그인에 실패했어요: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
   }
 
   Widget _orLine() {
@@ -213,7 +236,9 @@ class _LoginMethodPageState extends State<LoginMethodPage> {
                   height: 2.12,
                 ),
                 radius: 10,
-                onTap: () {},
+                onTap: _isGoogleLoading
+                    ? null
+                    : () => _signInWithGoogle(context),
               ),
             ),
             Positioned(
