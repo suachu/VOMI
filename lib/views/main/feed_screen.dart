@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vomi/core/theme/colors.dart';
 import 'package:vomi/views/auth/pages/login_method_page.dart';
+import 'package:vomi/views/bottom_nav.dart';
 import 'package:vomi/views/main/facility_detail_screen.dart';
 import 'package:vomi/views/main/facility_models.dart';
 import 'package:vomi/views/main/post_actions.dart';
@@ -31,6 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double bottomInset =
+        BottomNavBar.navH + MediaQuery.of(context).padding.bottom + 20;
     final friendNames = <String>{'미스터츄'};
 
     final postsAll = [
@@ -147,9 +150,9 @@ class _HomeScreenState extends State<HomeScreen> {
         logoImage: const AssetImage('assets/images/vomi.png'),
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: EdgeInsets.fromLTRB(0, 16, 0, bottomInset),
         itemCount: posts.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        separatorBuilder: (_, index) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
           final post = posts[index];
           return Column(
