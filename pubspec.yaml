@@ -39,6 +39,11 @@ dependencies:
   google_sign_in: ^6.3.0
   apple_maps_flutter: ^1.4.0
   geolocator: ^11.1.0
+  xml: ^6.6.1
+  http: ^1.6.0
+  charset_converter: ^2.3.0
+  webview_flutter: ^4.8.0
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +70,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
    - assets/images/
+   - assets/images/volunteer/
+   - assets/mock/
    
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -99,6 +106,12 @@ flutter:
           weight: 800
         - asset: assets/fonts/Pretendard-Black.ttf
           weight: 900
+    - family: OwnglyphUiyeon
+      fonts:
+        - asset: assets/fonts/ongleip_uiyeon.ttf
+    - family: Ownglyph PDH
+      fonts:
+        - asset: assets/fonts/ongleip_uiyeon.ttf
 
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

@@ -21,10 +21,12 @@ class BottomNavBar extends StatelessWidget {
 
   // ✅ 파란 원
   static const double bubble = 53;
-  static const Color bubbleColor = Color(0xFFBFE6FF);
+  static const Color bubbleColor = Color(0xFFACD7E6);
 
   // ✅ 눌리면 같이 위로 올라가는 정도
   static const double lift = 6;
+  // ✅ 네비 내부 요소(아이콘 + 선택 원) 공통 상향 이동값
+  static const double contentShiftUp = 5;
 
   // ✅ 순서: 맵 → 목록 → 홈 → 기록 → 프로필
   // ✅ left/top은 "아이콘" 기준 좌표로 그대로 두고,
@@ -104,6 +106,7 @@ class BottomNavBar extends StatelessWidget {
                   ],
                 ),
                 child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
                     // ✅ 파란 원: 선택된 아이콘 하나만 (아이콘보다 아래)
                     if (selectedIndex >= 0)
@@ -112,6 +115,7 @@ class BottomNavBar extends StatelessWidget {
                         bubble: bubble * scale,
                         bubbleColor: bubbleColor,
                         lift: lift * scale,
+                        shiftUp: contentShiftUp * scale,
                         scale: scale,
                       ),
 
@@ -139,7 +143,9 @@ class BottomNavBar extends StatelessWidget {
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeOut,
                         left: slotLeft,
-                        top: selected ? slotTop - (lift * scale) : slotTop,
+                        top: selected
+                            ? slotTop - (lift * scale) - (contentShiftUp * scale)
+                            : slotTop - (contentShiftUp * scale),
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () => onSelect(i),
@@ -158,6 +164,21 @@ class BottomNavBar extends StatelessWidget {
                         ),
                       );
                     }),
+
+                    // 각 탭 영역 전체를 한 번 더 받아서
+                    // 아이콘 좌표 오차가 있어도 탭 전환이 확실히 되게 한다.
+                    Positioned.fill(
+                      child: Row(
+                        children: List.generate(specs.length, (i) {
+                          return Expanded(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onTap: () => onSelect(i),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -175,6 +196,7 @@ class _BubbleOnly extends StatelessWidget {
   final double bubble;
   final Color bubbleColor;
   final double lift;
+  final double shiftUp;
   final double scale;
 
   const _BubbleOnly({
@@ -182,6 +204,7 @@ class _BubbleOnly extends StatelessWidget {
     required this.bubble,
     required this.bubbleColor,
     required this.lift,
+    required this.shiftUp,
     required this.scale,
   });
 
@@ -191,7 +214,7 @@ class _BubbleOnly extends StatelessWidget {
     final double centerY = (spec.top * scale) + (spec.h * scale) / 2;
 
     final double bubbleLeft = centerX - bubble / 2;
-    final double bubbleTop = centerY - bubble / 2 - lift;
+    final double bubbleTop = centerY - bubble / 2 - lift - shiftUp;
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 220),

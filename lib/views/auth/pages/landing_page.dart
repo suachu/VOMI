@@ -25,8 +25,8 @@ class LandingPage extends StatelessWidget {
           children: [
             // ✅ V 로고
             Positioned(
-              left: 84.95,
-              top: 273,
+              left: 94.95,
+              top: 245,
               child: Image.asset(
                 'assets/images/V.png',
                 width: 160,
@@ -37,8 +37,8 @@ class LandingPage extends StatelessWidget {
 
             // ✅ omi 로고
             Positioned(
-              left: 193.95,
-              top: 428,
+              left: 170.95,
+              top: 390,
               child: Image.asset(
                 'assets/images/omi.png',
                 width: 146,

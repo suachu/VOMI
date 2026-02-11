@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:vomi/volunteer/screens/volunteer_list_screen.dart';
 import 'package:vomi/views/bottom_nav.dart';
 import 'package:vomi/views/main/calendar_screen.dart';
 import 'package:vomi/views/main/feed_screen.dart';
-import 'package:vomi/views/main/list_screen.dart';
 import 'package:vomi/views/main/map_screen.dart';
 import 'package:vomi/views/main/my_page_screen.dart';
 
@@ -14,6 +14,8 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  static const String _volunteerServiceKey =
+      '55c97393c0b45a46ae1a742f4bee2153a92fb6db8782f53d51792cd053911195';
   int _index = 2; // default to Home
 
   @override
@@ -24,7 +26,7 @@ class _MainShellState extends State<MainShell> {
         index: _index,
         children: const [
           MapScreen(),
-          ListScreen(),
+          VolunteerListScreen(serviceKey: _volunteerServiceKey),
           HomeScreen(),
           CalendarScreen(),
           MyPageScreen(),

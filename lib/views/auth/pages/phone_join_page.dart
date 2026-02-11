@@ -22,7 +22,7 @@ class _PhoneJoinPageState extends State<PhoneJoinPage> {
   final phoneCtrl = TextEditingController();
 
   bool carrierOpen = false;
-  String carrierValue = 'SKT';
+  String? carrierValue;
 
   String? rrnError;
   String? phoneError;
@@ -277,9 +277,11 @@ class _PhoneJoinPageState extends State<PhoneJoinPage> {
                   behavior: HitTestBehavior.opaque,
                   onTap: _toggleCarrier,
                   child: Text(
-                    carrierValue,
-                    style: const TextStyle(
-                      color: Colors.black,
+                    carrierValue ?? '통신사 입력',
+                    style: TextStyle(
+                      color: carrierValue == null
+                          ? const Color(0xFFB1B3B9)
+                          : Colors.black,
                       fontSize: 21,
                       fontWeight: FontWeight.w500,
                     ),
