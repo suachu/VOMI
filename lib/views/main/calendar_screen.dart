@@ -60,10 +60,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _openWriteFlow() async {
-    final saved = await Navigator.of(context).push<bool>(
+    final savedEntry = await Navigator.of(context).push<JournalEntry?>(
       MaterialPageRoute(builder: (_) => const EmotionSelectScreen()),
     );
-    if (saved == true) {
+    if (savedEntry == null) return;
+    await _loadProfile();
+    await _loadEntries();
+    if (!mounted) return;
+
+    final target = _entries.where((e) => e.id == savedEntry.id).toList();
+    final entry = target.isNotEmpty ? target.first : savedEntry;
+    final result = await Navigator.of(context).push<_PostDetailResult>(
+      MaterialPageRoute(
+        builder: (_) => _PostDetailScreen(
+          entry: entry,
+          isLiked: _likedEntryIds.contains(entry.id),
+          displayLikeCount:
+              entry.likeCount + (_likedEntryIds.contains(entry.id) ? 1 : 0),
+        ),
+      ),
+    );
+    if (result != null) {
       await _loadProfile();
       await _loadEntries();
     }
@@ -178,7 +195,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         left: f.x(4),
                         top: f.y(92),
                         child: Text(
-                          '${_displayedMonth.month}월 일지',
+                          '${_displayedMonth.month}월 일기',
                           style: const TextStyle(
                             fontFamily: 'Pretendard Variable',
                             fontSize: 20,
@@ -708,7 +725,7 @@ class _PostDetailScreen extends StatelessWidget {
     if (!context.mounted || action == null) return;
     switch (action) {
       case _PostMenuAction.edit:
-        final saved = await Navigator.of(context).push<bool>(
+        final saved = await Navigator.of(context).push<Object?>(
           MaterialPageRoute(
             builder: (_) => JournalWriteScreen(
               selectedEmotionIndex: entry.emotionIndex,
@@ -717,7 +734,7 @@ class _PostDetailScreen extends StatelessWidget {
           ),
         );
         if (!context.mounted) return;
-        if (saved == true) {
+        if (saved != null) {
           PostVisibilityRegistry.showEntry(entry);
           Navigator.of(context).pop(_PostDetailResult.edited);
         }

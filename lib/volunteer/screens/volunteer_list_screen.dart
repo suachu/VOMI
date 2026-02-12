@@ -29,6 +29,9 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
   bool _showFilterSheet = false;
   int _selectedFilterTab = 0;
   String? _selectedRegion;
+  String? _selectedDistrict;
+  final Set<String> _selectedVolunteerFields = <String>{};
+  final Map<String, Set<String>> _selectedOptionsByTab = <String, Set<String>>{};
   String? _errorMessage;
   int _pageNo = 1;
   int? _totalCount;
@@ -43,6 +46,90 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
     '모집상태',
     '봉사기간',
     '봉사자유형',
+    '재난 일감',
+    '요일',
+    '인정시간',
+  ];
+
+  static const List<String> _volunteerFieldOptions = [
+    '전체',
+    '주거환경',
+    '교육',
+    '농어촌 봉사',
+    '환경·생태계보호',
+    '지역안전·보호',
+    '재난·재해',
+    '기타',
+    '생활편의',
+    '상담·멘토링',
+    '보건·의료',
+    '문화·체육·예술·관광',
+    '사무행정',
+    '인권·공익',
+    '국제협력·해외봉사',
+    '자원봉사 기본교육',
+  ];
+
+  static const List<String> _activityTypeOptions = [
+    '전체',
+    '오프라인',
+    '온라인',
+    '온라인+오프라인',
+  ];
+
+  static const List<String> _targetOptions = [
+    '전체',
+    '장애인',
+    '쪽방촌',
+    '여성',
+    '사회적기업',
+    '기타',
+    '아동·청소년',
+    '노인',
+    '다문화가정',
+    '환경',
+    '고향봉사',
+  ];
+
+  static const List<String> _recruitStateOptions = [
+    '전체',
+    '모집중',
+    '모집완료',
+  ];
+
+  static const List<String> _periodOptions = [
+    '전체',
+    '당일',
+    '1주일 이내',
+    '1개월 이내',
+    '1개월 이상',
+  ];
+
+  static const List<String> _volunteerTypeOptions = [
+    '성인',
+    '청소년',
+  ];
+
+  static const List<String> _disasterTaskOptions = [
+    '재난일감 포함',
+    '재난',
+  ];
+
+  static const List<String> _weekdayOptions = [
+    '평일',
+    '주말',
+  ];
+
+  static const List<String> _creditHourOptions = [
+    '전체',
+    '2시간',
+    '4시간',
+    '6시간',
+    '8시간 이상',
+    '1시간',
+    '3시간',
+    '5시간',
+    '7시간',
   ];
 
   static const List<String> _regionOptions = [
@@ -56,18 +143,246 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
     '울산광역시',
     '세종특별자치시',
     '경기도',
+    '강원특별자치도',
+    '충청북도',
+    '충청남도',
+    '전북특별자치도',
+    '전라남도',
+    '경상북도',
+    '경상남도',
+    '제주특별자치도',
   ];
 
   static const Map<String, List<String>> _regionDistrictOptions = {
-    '서울특별시': ['종로구', '중구', '용산구', '성동구', '광진구', '동대문구', '강남구', '송파구'],
-    '부산광역시': ['중구', '서구', '동구', '영도구', '부산진구', '해운대구', '사하구'],
-    '대구광역시': ['중구', '동구', '서구', '남구', '북구', '수성구', '달서구'],
-    '인천광역시': ['중구', '동구', '미추홀구', '연수구', '남동구', '부평구', '서구'],
+    '서울특별시': [
+      '종로구',
+      '중구',
+      '용산구',
+      '성동구',
+      '광진구',
+      '동대문구',
+      '중랑구',
+      '성북구',
+      '강북구',
+      '도봉구',
+      '노원구',
+      '은평구',
+      '서대문구',
+      '마포구',
+      '양천구',
+      '강서구',
+      '구로구',
+      '금천구',
+      '영등포구',
+      '동작구',
+      '관악구',
+      '서초구',
+      '강남구',
+      '송파구',
+      '강동구',
+    ],
+    '부산광역시': [
+      '중구',
+      '서구',
+      '동구',
+      '영도구',
+      '부산진구',
+      '동래구',
+      '남구',
+      '북구',
+      '해운대구',
+      '사하구',
+      '금정구',
+      '강서구',
+      '연제구',
+      '수영구',
+      '사상구',
+      '기장군',
+    ],
+    '대구광역시': ['중구', '동구', '서구', '남구', '북구', '수성구', '달서구', '달성군', '군위군'],
+    '인천광역시': [
+      '중구',
+      '동구',
+      '미추홀구',
+      '연수구',
+      '남동구',
+      '부평구',
+      '계양구',
+      '서구',
+      '강화군',
+      '옹진군',
+    ],
     '광주광역시': ['동구', '서구', '남구', '북구', '광산구'],
     '대전광역시': ['동구', '중구', '서구', '유성구', '대덕구'],
     '울산광역시': ['중구', '남구', '동구', '북구', '울주군'],
     '세종특별자치시': ['세종시'],
-    '경기도': ['수원시', '성남시', '고양시', '용인시', '화성시', '안산시', '부천시'],
+    '경기도': [
+      '수원시',
+      '성남시',
+      '고양시',
+      '용인시',
+      '부천시',
+      '안산시',
+      '안양시',
+      '남양주시',
+      '화성시',
+      '평택시',
+      '의정부시',
+      '시흥시',
+      '파주시',
+      '광명시',
+      '김포시',
+      '군포시',
+      '하남시',
+      '오산시',
+      '양주시',
+      '이천시',
+      '구리시',
+      '안성시',
+      '의왕시',
+      '포천시',
+      '여주시',
+      '동두천시',
+      '과천시',
+      '가평군',
+      '양평군',
+      '연천군',
+    ],
+    '강원특별자치도': [
+      '춘천시',
+      '원주시',
+      '강릉시',
+      '동해시',
+      '태백시',
+      '속초시',
+      '삼척시',
+      '홍천군',
+      '횡성군',
+      '영월군',
+      '평창군',
+      '정선군',
+      '철원군',
+      '화천군',
+      '양구군',
+      '인제군',
+      '고성군',
+      '양양군',
+    ],
+    '충청북도': [
+      '청주시',
+      '충주시',
+      '제천시',
+      '보은군',
+      '옥천군',
+      '영동군',
+      '증평군',
+      '진천군',
+      '괴산군',
+      '음성군',
+      '단양군',
+    ],
+    '충청남도': [
+      '천안시',
+      '공주시',
+      '보령시',
+      '아산시',
+      '서산시',
+      '논산시',
+      '계룡시',
+      '당진시',
+      '금산군',
+      '부여군',
+      '서천군',
+      '청양군',
+      '홍성군',
+      '예산군',
+      '태안군',
+    ],
+    '전북특별자치도': [
+      '전주시',
+      '군산시',
+      '익산시',
+      '정읍시',
+      '남원시',
+      '김제시',
+      '완주군',
+      '진안군',
+      '무주군',
+      '장수군',
+      '임실군',
+      '순창군',
+      '고창군',
+      '부안군',
+    ],
+    '전라남도': [
+      '목포시',
+      '여수시',
+      '순천시',
+      '나주시',
+      '광양시',
+      '담양군',
+      '곡성군',
+      '구례군',
+      '고흥군',
+      '보성군',
+      '화순군',
+      '장흥군',
+      '강진군',
+      '해남군',
+      '영암군',
+      '무안군',
+      '함평군',
+      '영광군',
+      '장성군',
+      '완도군',
+      '진도군',
+      '신안군',
+    ],
+    '경상북도': [
+      '포항시',
+      '경주시',
+      '김천시',
+      '안동시',
+      '구미시',
+      '영주시',
+      '영천시',
+      '상주시',
+      '문경시',
+      '경산시',
+      '의성군',
+      '청송군',
+      '영양군',
+      '영덕군',
+      '청도군',
+      '고령군',
+      '성주군',
+      '칠곡군',
+      '예천군',
+      '봉화군',
+      '울진군',
+      '울릉군',
+    ],
+    '경상남도': [
+      '창원시',
+      '진주시',
+      '통영시',
+      '사천시',
+      '김해시',
+      '밀양시',
+      '거제시',
+      '양산시',
+      '의령군',
+      '함안군',
+      '창녕군',
+      '고성군',
+      '남해군',
+      '하동군',
+      '산청군',
+      '함양군',
+      '거창군',
+      '합천군',
+    ],
+    '제주특별자치도': ['제주시', '서귀포시'],
   };
 
   @override
@@ -268,9 +583,237 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
   }
 
   List<String> _districtOptionsForFilter() {
-    final city = _selectedRegion ?? '서울특별시';
+    final city = _selectedRegion;
+    if (city == null) return const [];
     if (city == '전체') return const ['전체'];
-    return _regionDistrictOptions[city] ?? const ['정보 없음'];
+    final districts = _regionDistrictOptions[city] ?? const ['정보 없음'];
+    return ['전체', ...districts];
+  }
+
+  List<String> get _fieldLeftColumn {
+    final options = _optionsForCurrentCheckTab();
+    final half = (options.length / 2).ceil();
+    return options.sublist(0, half);
+  }
+
+  List<String> get _fieldRightColumn {
+    final options = _optionsForCurrentCheckTab();
+    final half = (options.length / 2).ceil();
+    return options.sublist(half);
+  }
+
+  String get _currentTabLabel => _filterTabs[_selectedFilterTab];
+
+  List<String> _optionsForCurrentCheckTab() {
+    switch (_currentTabLabel) {
+      case '봉사분야':
+        return _volunteerFieldOptions;
+      case '활동구분':
+        return _activityTypeOptions;
+      case '봉사대상':
+        return _targetOptions;
+      case '모집상태':
+        return _recruitStateOptions;
+      case '봉사기간':
+        return _periodOptions;
+      case '봉사자유형':
+        return _volunteerTypeOptions;
+      case '재난 일감':
+        return _disasterTaskOptions;
+      case '요일':
+        return _weekdayOptions;
+      case '인정시간':
+        return _creditHourOptions;
+      default:
+        return const ['전체'];
+    }
+  }
+
+  Set<String> _selectedSetForCurrentTab() {
+    return _selectedOptionsByTab.putIfAbsent(_currentTabLabel, () => <String>{});
+  }
+
+  bool _isSelectedForCurrentTab(String option) {
+    return _selectedSetForCurrentTab().contains(option);
+  }
+
+  void _toggleOptionForCurrentTab(String option) {
+    final selectedSet = _selectedSetForCurrentTab();
+    final options = _optionsForCurrentCheckTab();
+    final nonAll = options.where((e) => e != '전체').toList();
+
+    if (option == '전체') {
+      if (selectedSet.contains('전체')) {
+        selectedSet.clear();
+      } else {
+        selectedSet
+          ..clear()
+          ..addAll(options);
+      }
+      return;
+    }
+
+    selectedSet.remove('전체');
+    if (selectedSet.contains(option)) {
+      selectedSet.remove(option);
+    } else {
+      selectedSet.add(option);
+      final selectedNonAllCount =
+          selectedSet.where((e) => e != '전체').length;
+      if (selectedNonAllCount == nonAll.length) {
+        selectedSet.add('전체');
+      }
+    }
+  }
+
+  bool _matchesRegionFilter(VolunteerItem item) {
+    final region = _selectedRegion;
+    if (region == null || region == '전체') return true;
+
+    final haystack = '${item.place} ${item.centerName} ${item.title}';
+    final regionKeywords = <String, List<String>>{
+      '서울특별시': ['서울특별시', '서울시', '서울'],
+      '부산광역시': ['부산광역시', '부산시', '부산'],
+      '대구광역시': ['대구광역시', '대구시', '대구'],
+      '인천광역시': ['인천광역시', '인천시', '인천'],
+      '광주광역시': ['광주광역시', '광주시', '광주'],
+      '대전광역시': ['대전광역시', '대전시', '대전'],
+      '울산광역시': ['울산광역시', '울산시', '울산'],
+      '세종특별자치시': ['세종특별자치시', '세종시', '세종'],
+      '경기도': ['경기도', '경기'],
+      '강원특별자치도': ['강원특별자치도', '강원도', '강원'],
+      '충청북도': ['충청북도', '충북'],
+      '충청남도': ['충청남도', '충남'],
+      '전북특별자치도': ['전북특별자치도', '전라북도', '전북'],
+      '전라남도': ['전라남도', '전남'],
+      '경상북도': ['경상북도', '경북'],
+      '경상남도': ['경상남도', '경남'],
+      '제주특별자치도': ['제주특별자치도', '제주도', '제주'],
+    };
+
+    final district = _selectedDistrict;
+    if (district != null && district != '전체') {
+      return haystack.contains(district);
+    }
+
+    final regionList = regionKeywords[region] ?? [region];
+    final districtList = _regionDistrictOptions[region] ?? const <String>[];
+    return regionList.any(haystack.contains) ||
+        districtList.any(haystack.contains);
+  }
+
+  Set<String> _selectedNonAllForTab(String tabLabel) {
+    final selected = _selectedOptionsByTab[tabLabel] ?? const <String>{};
+    return selected.where((e) => e != '전체').toSet();
+  }
+
+  bool _containsAny(String haystack, List<String> keywords) {
+    return keywords.any(haystack.contains);
+  }
+
+  String _itemHaystack(VolunteerItem item) {
+    return '${item.title} ${item.place} ${item.centerName}'.toLowerCase();
+  }
+
+  bool _matchesVolunteerFieldFilter(VolunteerItem item) {
+    final selected = _selectedNonAllForTab('봉사분야');
+    if (selected.isEmpty) return true;
+
+    final h = _itemHaystack(item);
+    final fieldKeywords = <String, List<String>>{
+      '주거환경': ['주거', '주택', '집수리', '도배', '환경개선', '정리수납'],
+      '교육': ['교육', '학습', '공부', '지도', '멘토', '교실', '학습지도'],
+      '농어촌 봉사': ['농촌', '어촌', '농어촌', '일손돕기', '모내기'],
+      '환경·생태계보호': ['환경', '생태', '보호', '플로깅', '줍깅', '정화', '쓰레기'],
+      '지역안전·보호': ['안전', '순찰', '보호', '방범', '캠페인'],
+      '재난·재해': ['재난', '재해', '복구', '구호', '수해', '산불'],
+      '기타': [],
+      '생활편의': ['생활', '편의', '이동지원', '배달', '도움'],
+      '상담·멘토링': ['상담', '멘토', '멘토링', '코칭'],
+      '보건·의료': ['보건', '의료', '건강', '병원', '간호', '검진'],
+      '문화·체육·예술·관광': ['문화', '체육', '예술', '관광', '행사', '축제'],
+      '사무행정': ['사무', '행정', '문서', '데이터', '정리'],
+      '인권·공익': ['인권', '공익', '권리', '인식개선'],
+      '국제협력·해외봉사': ['국제', '해외', '다문화', '글로벌'],
+      '자원봉사 기본교육': ['기본교육', '교육수료', '오리엔테이션', '봉사교육'],
+    };
+
+    for (final option in selected) {
+      if (option == '기타') {
+        return true;
+      }
+      final keywords = fieldKeywords[option] ?? const <String>[];
+      if (_containsAny(h, keywords)) return true;
+    }
+    return false;
+  }
+
+  bool _matchesActivityTypeFilter(VolunteerItem item) {
+    final selected = _selectedNonAllForTab('활동구분');
+    if (selected.isEmpty) return true;
+
+    final h = _itemHaystack(item);
+    final isOnline = _containsAny(h, ['온라인', '비대면', '줌', 'zoom', 'remote']);
+    final isHybrid = _containsAny(h, ['온라인+오프라인', '온·오프라인', '온오프라인']);
+    final isOffline = !isOnline || _containsAny(h, ['오프라인', '대면', '현장']);
+
+    for (final option in selected) {
+      if (option == '온라인' && isOnline) return true;
+      if (option == '오프라인' && isOffline) return true;
+      if (option == '온라인+오프라인' && isHybrid) return true;
+    }
+    return false;
+  }
+
+  bool _matchesTargetFilter(VolunteerItem item) {
+    final selected = _selectedNonAllForTab('봉사대상');
+    if (selected.isEmpty) return true;
+
+    final h = _itemHaystack(item);
+    final targetKeywords = <String, List<String>>{
+      '장애인': ['장애'],
+      '쪽방촌': ['쪽방'],
+      '여성': ['여성'],
+      '사회적기업': ['사회적기업', '소셜벤처'],
+      '기타': [],
+      '아동·청소년': ['아동', '청소년', '어린이', '유아', '학생'],
+      '노인': ['노인', '어르신', '실버', '요양'],
+      '다문화가정': ['다문화', '이주', '외국인'],
+      '환경': ['환경', '생태'],
+      '고향봉사': ['고향', '농촌', '귀촌'],
+    };
+
+    for (final option in selected) {
+      if (option == '기타') {
+        return true;
+      }
+      final keywords = targetKeywords[option] ?? const <String>[];
+      if (_containsAny(h, keywords)) return true;
+    }
+    return false;
+  }
+
+  bool _matchesRecruitStateFilter(VolunteerItem item) {
+    final selected = _selectedNonAllForTab('모집상태');
+    if (selected.isEmpty) return true;
+
+    final d = _dday(item.noticeEnd);
+    final isRecruiting = d == null || d >= 0;
+    final isClosed = !isRecruiting;
+
+    for (final option in selected) {
+      if (option == '모집중' && isRecruiting) return true;
+      if (option == '모집완료' && isClosed) return true;
+    }
+    return false;
+  }
+
+  bool _matchesAllFilters(VolunteerItem item) {
+    return _matchesRegionFilter(item) &&
+        _matchesVolunteerFieldFilter(item) &&
+        _matchesActivityTypeFilter(item) &&
+        _matchesTargetFilter(item) &&
+        _matchesRecruitStateFilter(item);
   }
 
   // ----------------- format helpers -----------------
@@ -711,6 +1254,14 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final visibleItems = _items
+        .where(_matchesAllFilters)
+        .toList(growable: false);
+    final visibleTopPick =
+        _topPickItem != null && _matchesAllFilters(_topPickItem!)
+        ? _topPickItem
+        : null;
+
     final isSearchState =
         _isSearchFocused ||
         _keyword.isNotEmpty ||
@@ -725,12 +1276,12 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
         !_loading &&
         _keyword.isNotEmpty &&
         _errorMessage == null &&
-        _items.isNotEmpty;
+        visibleItems.isNotEmpty;
     // ✅ TopPick 1개 + 나머지
-    final top = (!isSearchState) ? _topPickItem : null;
+    final top = (!isSearchState) ? visibleTopPick : null;
     final rest = top == null
-        ? _items
-        : _items.where((v) => v.id != top.id).toList(growable: false);
+        ? visibleItems
+        : visibleItems.where((v) => v.id != top.id).toList(growable: false);
 
     return Scaffold(
       backgroundColor: isSearchState ? Colors.white : const Color(0xFFF9F8F3),
@@ -758,7 +1309,7 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
                               padding: const EdgeInsets.fromLTRB(21, 0, 21, 40),
                               children: [
                                 if (showListInSearchState)
-                                  ..._items.map(
+                                  ...visibleItems.map(
                                     (v) => Padding(
                                       padding: const EdgeInsets.only(
                                         bottom: 12,
@@ -931,7 +1482,7 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: 399,
+                  top: 370,
                   child: Center(
                     child: Container(
                       width: 402,
@@ -989,7 +1540,10 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
                                 return GestureDetector(
                                   onTap: () => setState(() {
                                     _selectedFilterTab = index;
-                                    if (index != 0) _selectedRegion = null;
+                                    if (index != 0) {
+                                      _selectedRegion = null;
+                                      _selectedDistrict = null;
+                                    }
                                   }),
                                   child: Padding(
                                     padding: const EdgeInsets.only(right: 14),
@@ -1042,98 +1596,206 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
                             child: _selectedFilterTab == 0
                                 ? Padding(
                                     padding: const EdgeInsets.only(
-                                      top: 16,
+                                      top: 0,
                                       bottom: 18,
                                     ),
                                     child: Center(
-                                      child: SizedBox(
-                                        width: 331,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            SizedBox(
-                                              width: 154,
-                                              child: ListView.separated(
-                                                itemCount:
-                                                    _cityOptionsForFilter()
-                                                        .length,
-                                                separatorBuilder:
-                                                    (context, index) =>
-                                                        const SizedBox(
-                                                          height: 20,
-                                                        ),
-                                                itemBuilder: (context, index) {
-                                                  final city =
-                                                      _cityOptionsForFilter()[index];
-                                                  final selected =
-                                                      (_selectedRegion ??
-                                                          '서울특별시') ==
-                                                      city;
-                                                  return GestureDetector(
-                                                    onTap: () => setState(
-                                                      () => _selectedRegion =
-                                                          city,
-                                                    ),
-                                                    behavior:
-                                                        HitTestBehavior.opaque,
-                                                    child: Text(
-                                                      city,
-                                                      style: TextStyle(
-                                                        color: selected
-                                                            ? const Color(
-                                                                0xFF2D3436,
-                                                              )
-                                                            : const Color(
-                                                                0xFF5E666D,
+                                      child: Transform.translate(
+                                        offset: const Offset(0, -40),
+                                        child: SizedBox(
+                                          width: 331,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              SizedBox(
+                                                width: 154,
+                                                child: ListView.separated(
+                                                  itemCount:
+                                                      _cityOptionsForFilter()
+                                                          .length,
+                                                  separatorBuilder:
+                                                      (context, index) =>
+                                                          const SizedBox(
+                                                            height: 14,
+                                                          ),
+                                                  itemBuilder: (context, index) {
+                                                    final city =
+                                                        _cityOptionsForFilter()[index];
+                                                    final selected =
+                                                        (_selectedRegion ??
+                                                            '서울특별시') ==
+                                                        city;
+                                                    return GestureDetector(
+                                                      onTap: () => setState(() {
+                                                        _selectedRegion = city;
+                                                        _selectedDistrict =
+                                                            null;
+                                                      }),
+                                                      behavior: HitTestBehavior
+                                                          .opaque,
+                                                      child: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Text(
+                                                              city,
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style: TextStyle(
+                                                                color: selected
+                                                                    ? const Color(
+                                                                        0xFF2D3436,
+                                                                      )
+                                                                    : const Color(
+                                                                        0xFF5E666D,
+                                                                      ),
+                                                                fontSize:
+                                                                    34 * 0.48,
+                                                                fontFamily:
+                                                                    'Pretendard Variable',
+                                                                fontWeight:
+                                                                    selected
+                                                                    ? FontWeight
+                                                                          .w600
+                                                                    : FontWeight
+                                                                          .w500,
+                                                                height: 1.0,
                                                               ),
-                                                        fontSize: 34 * 0.48,
-                                                        fontFamily:
-                                                            'Pretendard Variable',
-                                                        fontWeight: selected
-                                                            ? FontWeight.w600
-                                                            : FontWeight.w500,
-                                                        height: 1.0,
+                                                            ),
+                                                          ),
+                                                          Icon(
+                                                            Icons.chevron_right,
+                                                            size: 18,
+                                                            color: selected
+                                                                ? const Color(
+                                                                    0xFF111111,
+                                                                  )
+                                                                : const Color(
+                                                                    0xFFB5B9BE,
+                                                                  ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                    ),
-                                                  );
-                                                },
+                                                    );
+                                                  },
+                                                ),
                                               ),
-                                            ),
-                                            SizedBox(
-                                              width: 154,
-                                              child: ListView.separated(
-                                                itemCount:
-                                                    _districtOptionsForFilter()
-                                                        .length,
-                                                separatorBuilder:
-                                                    (context, index) =>
-                                                        const SizedBox(
-                                                          height: 20,
-                                                        ),
-                                                itemBuilder: (context, index) {
-                                                  final district =
-                                                      _districtOptionsForFilter()[index];
-                                                  return Text(
-                                                    district,
-                                                    textAlign: TextAlign.left,
-                                                    style: const TextStyle(
-                                                      color: Color(0xFF5E666D),
-                                                      fontSize: 34 * 0.48,
-                                                      fontFamily:
-                                                          'Pretendard Variable',
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      height: 1.0,
-                                                    ),
-                                                  );
-                                                },
+                                              SizedBox(
+                                                width: 154,
+                                                child: _selectedRegion == null
+                                                    ? const SizedBox.shrink()
+                                                    : ListView.separated(
+                                                        itemCount:
+                                                            _districtOptionsForFilter()
+                                                                .length,
+                                                        separatorBuilder:
+                                                            (context, index) =>
+                                                                const SizedBox(
+                                                                  height: 14,
+                                                                ),
+                                                        itemBuilder: (context, index) {
+                                                          final district =
+                                                              _districtOptionsForFilter()[index];
+                                                          return GestureDetector(
+                                                            onTap: () => setState(() {
+                                                              final city =
+                                                                  _selectedRegion ??
+                                                                  '서울특별시';
+                                                              _selectedRegion =
+                                                                  city;
+                                                              _selectedDistrict =
+                                                                  district;
+                                                              _showFilterSheet =
+                                                                  false;
+                                                            }),
+                                                            behavior:
+                                                                HitTestBehavior
+                                                                    .opaque,
+                                                            child: Text(
+                                                              district,
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style: TextStyle(
+                                                                color:
+                                                                    const Color(
+                                                                      0xFF5E666D,
+                                                                    ),
+                                                                fontSize:
+                                                                    34 * 0.48,
+                                                                fontFamily:
+                                                                    'Pretendard Variable',
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                height: 1.0,
+                                                              ),
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
+                                      ),
+                                    ),
+                                  )
+                                : _selectedFilterTab >= 1
+                                ? Transform.translate(
+                                    offset: const Offset(0, -40),
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        28,
+                                        12,
+                                        28,
+                                        18,
+                                      ),
+                                      child: ListView.separated(
+                                        itemCount: _fieldLeftColumn.length,
+                                        separatorBuilder: (context, index) =>
+                                            const SizedBox(height: 20),
+                                        itemBuilder: (context, index) {
+                                          final left = _fieldLeftColumn[index];
+                                          final right =
+                                              index < _fieldRightColumn.length
+                                              ? _fieldRightColumn[index]
+                                              : null;
+                                          return Row(
+                                            children: [
+                                              Expanded(
+                                                child: _FieldFilterTile(
+                                                  label: left,
+                                                  selected:
+                                                      _isSelectedForCurrentTab(
+                                                        left,
+                                                      ),
+                                                  onTap: () => setState(
+                                                    () => _toggleOptionForCurrentTab(left),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 22),
+                                              Expanded(
+                                                child: right == null
+                                                    ? const SizedBox.shrink()
+                                                    : _FieldFilterTile(
+                                                        label: right,
+                                                        selected:
+                                                            _isSelectedForCurrentTab(
+                                                              right,
+                                                            ),
+                                                        onTap: () => setState(() {
+                                                          _toggleOptionForCurrentTab(right);
+                                                        }),
+                                                      ),
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       ),
                                     ),
                                   )
@@ -1231,6 +1893,54 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FieldFilterTile extends StatelessWidget {
+  const _FieldFilterTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Image.asset(
+            selected ? 'assets/images/On.png' : 'assets/images/Off.png',
+            width: 17,
+            height: 17,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                color: selected
+                    ? const Color(0xFF111111)
+                    : const Color(0xFF5E666D),
+                fontSize: 14,
+                fontFamily: 'Pretendard Variable',
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                height: 1.0,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

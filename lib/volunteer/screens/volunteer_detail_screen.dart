@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vomi/services/liked_volunteer_service.dart';
 import '../models/volunteer_item.dart';
 import '../services/volunteer_api.dart';
 import '../services/volunteer_parser.dart';
@@ -38,6 +39,76 @@ class _VolunteerDetailScreenState extends State<VolunteerDetailScreen> {
   void initState() {
     super.initState();
     _loadChipMeta();
+    _loadLikedState();
+  }
+
+  Future<void> _loadLikedState() async {
+    await LikedVolunteerService.ensureLoaded();
+    if (!mounted) return;
+    setState(() {
+      _liked = LikedVolunteerService.isLikedSync(widget.item.id);
+    });
+  }
+
+  String _thumbnailAssetForItem() {
+    final t = widget.item.title.toLowerCase();
+    if (t.contains('급식') ||
+        t.contains('배식') ||
+        t.contains('조리') ||
+        t.contains('식당')) {
+      return 'assets/images/volunteer/illus_school1.png';
+    }
+    if (t.contains('환경') ||
+        t.contains('쓰레기') ||
+        t.contains('쓰줍') ||
+        t.contains('플로깅')) {
+      return 'assets/images/volunteer/illus_eco1.png';
+    }
+    if (t.contains('동물') ||
+        t.contains('유기') ||
+        t.contains('강아지') ||
+        t.contains('유기견')) {
+      return 'assets/images/volunteer/illus_animal1.png';
+    }
+    if (t.contains('요양') ||
+        t.contains('요양원') ||
+        t.contains('노인') ||
+        t.contains('어르신') ||
+        t.contains('양로원')) {
+      return 'assets/images/volunteer/illus_care1.png';
+    }
+    if (t.contains('교육') ||
+        t.contains('멘토') ||
+        t.contains('학습') ||
+        t.contains('아동') ||
+        t.contains('청소년')) {
+      return 'assets/images/volunteer/illus_child1.png';
+    }
+    return 'assets/images/volunteer/illus_people1.png';
+  }
+
+  Future<void> _toggleLiked() async {
+    final previous = _liked;
+    setState(() => _liked = !_liked);
+    try {
+      await LikedVolunteerService.toggle(
+        LikedVolunteer(
+          id: widget.item.id,
+          title: widget.item.title,
+          subtitle: widget.item.place.isEmpty
+              ? (widget.item.centerName.isEmpty ? '봉사 정보' : widget.item.centerName)
+              : widget.item.place,
+          thumbnailAsset: _thumbnailAssetForItem(),
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _liked = LikedVolunteerService.isLikedSync(widget.item.id);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _liked = previous);
+    }
   }
 
   Future<void> _loadChipMeta() async {
@@ -883,13 +954,12 @@ class _VolunteerDetailScreenState extends State<VolunteerDetailScreen> {
               height: 27.53,
               child: InkWell(
                 borderRadius: BorderRadius.circular(15),
-                onTap: () => setState(() => _liked = !_liked),
-                child: Opacity(
-                  opacity: _liked ? 1.0 : 0.9,
-                  child: Image.asset(
-                    'assets/images/volunteer/heart2.png',
-                    fit: BoxFit.contain,
-                  ),
+                onTap: _toggleLiked,
+                child: Image.asset(
+                  _liked
+                      ? 'assets/images/heart3.png'
+                      : 'assets/images/volunteer/heart2.png',
+                  fit: BoxFit.contain,
                 ),
               ),
             ),

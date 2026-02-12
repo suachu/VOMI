@@ -5,6 +5,8 @@ class ListItem {
   final int popularity;
   final DateTime createdAt;
   final String thumbnailAsset;
+  final String region;
+  final String district;
 
   const ListItem({
     required this.title,
@@ -13,5 +15,7 @@ class ListItem {
     required this.popularity,
     required this.createdAt,
     required this.thumbnailAsset,
+    this.region = '',
+    this.district = '',
   });
 }

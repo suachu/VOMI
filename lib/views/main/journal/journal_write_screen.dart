@@ -130,7 +130,16 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
       await JournalStorage.addEntry(uid, entry);
     }
     if (!mounted) return;
-    Navigator.of(context).pop(true);
+    await Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const _JournalSavingScreen(),
+      ),
+    );
+    if (!mounted) return;
+    Navigator.of(context).pop(entry);
   }
 
   Future<List<String>> _uploadImages({
@@ -152,35 +161,47 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
     return urls;
   }
 
-  Widget _buildScopeChip(String text, IconData icon) {
+  Widget _buildScopeChip(String text, String iconAsset) {
     final selected = _scope == text;
     return Expanded(
       child: GestureDetector(
         onTap: () {
           setState(() {
             _scope = text;
-            _showScopePicker = false;
           });
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          height: 40,
+          height: 32,
           decoration: BoxDecoration(
             color: selected ? const Color(0xFFA9D8EA) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: const Color(0xFF6E7880)),
-              const SizedBox(width: 6),
+              ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                  selected ? Colors.white : const Color(0xFF6E7880),
+                  BlendMode.srcIn,
+                ),
+                child: Image.asset(
+                  iconAsset,
+                  width: 16,
+                  height: 16,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(width: 4),
               Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Pretendard Variable',
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF6E7880),
+                  height: 19.5 / 13,
+                  letterSpacing: 0,
+                  color: selected ? Colors.white : const Color(0xFF6E7880),
                 ),
               ),
             ],
@@ -210,7 +231,7 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
             ),
             Positioned(
               left: 35,
-              top: 93,
+              top: 77,
               child: GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
                 behavior: HitTestBehavior.opaque,
@@ -222,55 +243,47 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
               ),
             ),
             Positioned(
-              left: 62,
-              top: 81,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _showScopePicker = !_showScopePicker;
-                  });
-                },
-                child: Text(
-                  '나의 일기 · $_scope ${_showScopePicker ? '▲' : '▼'}',
-                  style: const TextStyle(
-                    fontFamily: 'Pretendard Variable',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    height: 1.0,
-                    letterSpacing: 0,
-                    color: Color(0xFF000000),
+              left: 0,
+              right: 0,
+              top: 61,
+              child: Center(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _showScopePicker = !_showScopePicker;
+                    });
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '나의 일지 · $_scope',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: 'Pretendard Variable',
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          height: 42 / 17,
+                          letterSpacing: 0,
+                          color: Color(0xFF000000),
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      AnimatedRotation(
+                        turns: _showScopePicker ? 0.5 : 0.0,
+                        duration: const Duration(milliseconds: 180),
+                        child: const Image(
+                          image: AssetImage('assets/images/tri.png'),
+                          width: 12,
+                          height: 12,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            if (_showScopePicker)
-              Positioned(
-                left: 24,
-                right: 24,
-                top: 76,
-                child: Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x26000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      _buildScopeChip('비공개', Icons.lock_outline_rounded),
-                      _buildScopeChip('친구공개', Icons.group_outlined),
-                      _buildScopeChip('전체공개', Icons.public_rounded),
-                    ],
-                  ),
-                ),
-              ),
             Positioned(
               left: 24,
               top: 138,
@@ -298,10 +311,11 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                         controller: _titleController,
                         style: const TextStyle(
                           fontFamily: 'Pretendard Variable',
-                          fontSize: 46,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 25,
+                          fontWeight: FontWeight.w400,
                           color: Color(0xFF646E75),
-                          height: 1.05,
+                          height: 24 / 25,
+                          letterSpacing: 0,
                         ),
                         decoration: const InputDecoration(
                           isDense: true,
@@ -309,10 +323,11 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                           border: InputBorder.none,
                           hintStyle: TextStyle(
                             fontFamily: 'Pretendard Variable',
-                            fontSize: 46,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w400,
                             color: Color(0xFF7A848B),
-                            height: 1.05,
+                            height: 24 / 25,
+                            letterSpacing: 0,
                           ),
                         ),
                       ),
@@ -332,9 +347,11 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                               controller: _locationController,
                               style: const TextStyle(
                                 fontFamily: 'Pretendard Variable',
-                                fontSize: 18,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w400,
                                 color: Color(0xFF6D767D),
+                                height: 1.0,
+                                letterSpacing: 0,
                               ),
                               decoration: const InputDecoration(
                                 isDense: true,
@@ -342,9 +359,11 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                                 border: InputBorder.none,
                                 hintStyle: TextStyle(
                                   fontFamily: 'Pretendard Variable',
-                                  fontSize: 18,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w400,
                                   color: Color(0xFF7E878E),
+                                  height: 1.0,
+                                  letterSpacing: 0,
                                 ),
                               ),
                             ),
@@ -462,45 +481,49 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                           textAlignVertical: TextAlignVertical.top,
                           style: const TextStyle(
                             fontFamily: 'Pretendard Variable',
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w400,
-                            height: 1.5,
+                            height: 24 / 15,
                             color: Color(0xFF5F676F),
+                            letterSpacing: 0,
                           ),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
                             hintText: '이번 봉사활동을 통해 느낀 점을 기록해보세요!',
                             hintStyle: TextStyle(
                               fontFamily: 'Pretendard Variable',
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w400,
                               color: Color(0xFFB7BEC4),
+                              height: 24 / 15,
+                              letterSpacing: 0,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      GestureDetector(
-                        onTap: _canSave ? _saveEntry : null,
-                        child: Container(
-                          width: double.infinity,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: _canSave
-                                ? const Color(0xFFA9D3E4)
-                                : const Color(0xFFE6EDF2),
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '저장하기',
-                              style: TextStyle(
-                                fontFamily: 'Pretendard Variable',
-                                fontSize: 40,
-                                fontWeight: FontWeight.w600,
-                                color: _canSave
-                                    ? Colors.white
-                                    : const Color(0xFFB4C0C7),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: GestureDetector(
+                          onTap: _canSave ? _saveEntry : null,
+                          child: Container(
+                            width: 306.5369873046875,
+                            height: 51.9912109375,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFACD7E6),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '저장하기',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Pretendard Variable',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  height: 24 / 16,
+                                  letterSpacing: 0,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -511,7 +534,152 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                 ),
               ),
             ),
+            if (_showScopePicker)
+              Positioned(
+                left: 61,
+                width: 280,
+                top: 95,
+                child: Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x40000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 0),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      _buildScopeChip('비공개', 'assets/images/lock.png'),
+                      _buildScopeChip('친구공개', 'assets/images/volunteer/twopeople.png'),
+                      _buildScopeChip('전체공개', 'assets/images/uni.png'),
+                    ],
+                  ),
+                ),
+              ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JournalSavingScreen extends StatefulWidget {
+  const _JournalSavingScreen();
+
+  @override
+  State<_JournalSavingScreen> createState() => _JournalSavingScreenState();
+}
+
+class _JournalSavingScreenState extends State<_JournalSavingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 240,
+                  height: 240,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFF3FCFF),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFFF3FCFF),
+                        blurRadius: 2.88,
+                        offset: Offset(0, 0),
+                      ),
+                      BoxShadow(
+                        color: Color(0xFFF3FCFF),
+                        blurRadius: 5.76,
+                        offset: Offset(0, 0),
+                      ),
+                      BoxShadow(
+                        color: Color(0xFFF3FCFF),
+                        blurRadius: 20.16,
+                        offset: Offset(0, 0),
+                      ),
+                      BoxShadow(
+                        color: Color(0xFFF3FCFF),
+                        blurRadius: 40.32,
+                        offset: Offset(0, 0),
+                      ),
+                      BoxShadow(
+                        color: Color(0xFFF3FCFF),
+                        blurRadius: 69.12,
+                        offset: Offset(0, 0),
+                      ),
+                      BoxShadow(
+                        color: Color(0xFFF3FCFF),
+                        blurRadius: 120.96,
+                        offset: Offset(0, 0),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: const [
+                      Positioned(
+                        left: 69.98,
+                        top: 79.9,
+                        child: Image(
+                          image: AssetImage('assets/images/heart4.png'),
+                          width: 100.00032043457031,
+                          height: 85.0792007446289,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 46),
+                const Text(
+                  '저장 중...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard Variable',
+                    fontSize: 30,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF757575),
+                    height: 24 / 30,
+                    letterSpacing: 0,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  '봉사는 즐거운 일이죠!\n앞으로도 Vomi와 함께해주세요',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard Variable',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF757575),
+                    height: 21 / 14,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

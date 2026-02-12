@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:vomi/core/theme/colors.dart';
+import 'package:vomi/views/main/journal/journal_entry.dart';
 import 'package:vomi/views/main/journal/journal_write_screen.dart';
 
 class EmotionSelectScreen extends StatefulWidget {
@@ -58,14 +59,14 @@ class _EmotionSelectScreenState extends State<EmotionSelectScreen> {
     });
     await Future<void>.delayed(const Duration(milliseconds: 450));
     if (!mounted) return;
-    final saved = await Navigator.of(context).push<bool>(
+    final savedEntry = await Navigator.of(context).push<JournalEntry?>(
       MaterialPageRoute(
         builder: (_) => JournalWriteScreen(selectedEmotionIndex: index),
       ),
     );
     if (!mounted) return;
-    if (saved == true) {
-      Navigator.of(context).pop(true);
+    if (savedEntry != null) {
+      Navigator.of(context).pop(savedEntry);
       return;
     }
     setState(() {

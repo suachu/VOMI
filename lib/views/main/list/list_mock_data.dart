@@ -10,6 +10,8 @@ final List<ListItem> mockListItems = [
     popularity: 84,
     createdAt: DateTime.parse('2026-02-09'),
     thumbnailAsset: 'assets/images/volunteer/illus_animal1.png',
+    region: '서울특별시',
+    district: '강남구',
   ),
   ListItem(
     title: '송파 유기견 급식 봉사',
@@ -18,6 +20,8 @@ final List<ListItem> mockListItems = [
     popularity: 76,
     createdAt: DateTime.parse('2026-02-06'),
     thumbnailAsset: 'assets/images/volunteer/illus_animal2.png',
+    region: '서울특별시',
+    district: '송파구',
   ),
   ListItem(
     title: '마포 임보센터 청소',
@@ -26,6 +30,8 @@ final List<ListItem> mockListItems = [
     popularity: 68,
     createdAt: DateTime.parse('2026-02-10'),
     thumbnailAsset: 'assets/images/volunteer/illus_animal3.png',
+    region: '서울특별시',
+    district: '마포구',
   ),
   ListItem(
     title: '용산 보호묘 케어 지원',
@@ -34,6 +40,8 @@ final List<ListItem> mockListItems = [
     popularity: 92,
     createdAt: DateTime.parse('2026-02-08'),
     thumbnailAsset: 'assets/images/volunteer/illus_animal4.png',
+    region: '서울특별시',
+    district: '용산구',
   ),
   ListItem(
     title: '동작 유기견 놀이 봉사',
@@ -42,5 +50,7 @@ final List<ListItem> mockListItems = [
     popularity: 59,
     createdAt: DateTime.parse('2026-02-11'),
     thumbnailAsset: 'assets/images/volunteer/Error.png',
+    region: '서울특별시',
+    district: '동작구',
   ),
 ];

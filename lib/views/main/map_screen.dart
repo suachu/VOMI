@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:apple_maps_flutter/apple_maps_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -45,6 +47,9 @@ class _MapScreenState extends State<MapScreen> {
   AppleMapController? _mapController;
   TrackingMode _trackingMode = TrackingMode.none;
   bool _iconsLoadAttempted = false;
+  bool _isMapSearchFocused = false;
+  final TextEditingController _mapSearchController = TextEditingController();
+  final FocusNode _mapSearchFocusNode = FocusNode();
   final UserLocationService _locationService = const UserLocationService();
   List<MapPlace> _places = mapPlaces;
   MapPlace? _selectedPlace;
@@ -53,6 +58,17 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _loadPlaces();
+    _mapSearchFocusNode.addListener(() {
+      if (!mounted) return;
+      setState(() => _isMapSearchFocused = _mapSearchFocusNode.hasFocus);
+    });
+  }
+
+  @override
+  void dispose() {
+    _mapSearchController.dispose();
+    _mapSearchFocusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -245,6 +261,11 @@ class _MapScreenState extends State<MapScreen> {
     return location.contains(placeTitle) || placeTitle.contains(location);
   }
 
+  void _resetMapSearchUi() {
+    _mapSearchController.clear();
+    _mapSearchFocusNode.unfocus();
+  }
+
   String _emojiAssetForIndex(int index) {
     return switch (index) {
       0 => 'assets/images/love.png',
@@ -355,7 +376,15 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       ),
               ),
-              const _TopSearchBar(),
+              _TopSearchBar(
+                controller: _mapSearchController,
+                focusNode: _mapSearchFocusNode,
+                isSearchFocused: _isMapSearchFocused,
+                onTapSearch: () {
+                  _mapSearchFocusNode.requestFocus();
+                },
+                onTapClear: _resetMapSearchUi,
+              ),
               _MapRightControls(onLocationTap: _moveToMyLocation),
               if (_selectedPlace != null)
                 Positioned.fill(
@@ -683,48 +712,143 @@ class _MapPlacePost {
 }
 
 class _TopSearchBar extends StatelessWidget {
-  const _TopSearchBar();
+  const _TopSearchBar({
+    required this.controller,
+    required this.focusNode,
+    required this.isSearchFocused,
+    required this.onTapSearch,
+    required this.onTapClear,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool isSearchFocused;
+  final VoidCallback onTapSearch;
+  final VoidCallback onTapClear;
 
   @override
   Widget build(BuildContext context) {
-    final double topPadding = MediaQuery.of(context).padding.top;
-    return Positioned(
-      left: 24,
-      right: 24,
-      top: topPadding + 18,
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 60,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5).withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: const Color(0xFF7E8690), width: 1.3),
-              ),
-              child: const Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '활동 이름, 모집기관 등을 입력하세요',
-                      style: TextStyle(
-                        color: Color(0xFFA5ABB2),
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+    final showClear = isSearchFocused || controller.text.trim().isNotEmpty;
+
+    return Stack(
+      children: [
+        Positioned(
+          left: 24,
+          top: 60,
+          child: SizedBox(
+            width: 311,
+            height: 42,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: ShapeDecoration(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    shape: RoundedRectangleBorder(
+                      side: const BorderSide(width: 1, color: Color(0xFF636E72)),
+                      borderRadius: BorderRadius.circular(24),
                     ),
                   ),
-                  Icon(Icons.search, size: 34, color: Color(0xFF3B434B)),
-                ],
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          textInputAction: TextInputAction.search,
+                          cursorColor: const Color(0xFF0A0A0A),
+                          style: const TextStyle(
+                            fontFamily: 'Pretendard Variable',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                            height: 1.0,
+                            letterSpacing: 0,
+                          ),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.only(
+                              left: 2,
+                              top: 10.5,
+                              bottom: 10.5,
+                            ),
+                            border: InputBorder.none,
+                            hintText: '활동 이름, 모집기관 등을 입력하세요',
+                            hintStyle: TextStyle(
+                              color: Color(0xFFA9A9A9),
+                              fontSize: 14,
+                              fontFamily: 'Pretendard Variable',
+                              fontWeight: FontWeight.w500,
+                              height: 1.0,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          const Icon(Icons.favorite_border, size: 40, color: Color(0xFF646D74)),
-        ],
-      ),
+        ),
+        Positioned(
+          left: 297,
+          top: 70,
+          child: GestureDetector(
+            onTap: onTapSearch,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: Image.asset(
+                  'assets/images/volunteer/search.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 351,
+          top: 68,
+          child: showClear
+              ? GestureDetector(
+                  onTap: onTapClear,
+                  behavior: HitTestBehavior.opaque,
+                  child: SizedBox(
+                    width: 27,
+                    height: 27,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: 4.13,
+                          top: 4.13,
+                          child: SizedBox(
+                            width: 18.73104476928711,
+                            height: 18.73104476928711,
+                            child: Image.asset(
+                              'assets/images/volunteer/X.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SizedBox(
+                  width: 22.5,
+                  height: 20.64,
+                  child: Image.asset(
+                    'assets/images/volunteer/heart.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }
