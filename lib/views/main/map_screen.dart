@@ -8,8 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:vomi/services/user_location_service.dart';
 import 'package:vomi/views/bottom_nav.dart';
-import 'package:vomi/views/main/list/list_mock_data.dart';
-import 'package:vomi/views/main/list_models.dart';
 import 'package:vomi/views/main/map_places.dart';
 
 class MapScreen extends StatefulWidget {
@@ -26,8 +24,15 @@ class _MapScreenState extends State<MapScreen> {
   );
   static const double _myLocationZoom = 15.5;
   static const int _maxPopupPosts = 2;
-  static const int _maxPopupNotices = 2;
-  static const Set<String> _publicScopes = {'전체공개', '전체'};
+  static const Set<String> _publicScopes = {'전체공개', '전체 공개', '전체'};
+  static const Set<String> _friendVisibleScopes = {
+    '전체공개',
+    '전체 공개',
+    '전체',
+    '친구공개',
+    '친구 공개',
+    '친구',
+  };
   static const String _fallbackPostImage = 'assets/images/dog1.png';
 
   // Marker mapping from your images:
@@ -43,12 +48,6 @@ class _MapScreenState extends State<MapScreen> {
   final UserLocationService _locationService = const UserLocationService();
   List<MapPlace> _places = mapPlaces;
   MapPlace? _selectedPlace;
-  late final Stream<QuerySnapshot<Map<String, dynamic>>> _postsStream =
-      FirebaseFirestore.instance
-          .collection('posts')
-          .orderBy('createdAt', descending: true)
-          .limit(50)
-          .snapshots();
 
   @override
   void initState() {
@@ -226,6 +225,16 @@ class _MapScreenState extends State<MapScreen> {
     return DateTime.now();
   }
 
+  Stream<QuerySnapshot<Map<String, dynamic>>> _buildPostsStream() {
+    final isLoggedIn = FirebaseAuth.instance.currentUser != null;
+    final scopes = isLoggedIn ? _friendVisibleScopes : _publicScopes;
+    return FirebaseFirestore.instance
+        .collection('posts')
+        .where('scope', whereIn: scopes.toList())
+        .limit(50)
+        .snapshots();
+  }
+
   String _normalizeScope(dynamic rawScope) {
     if (rawScope == null) return '';
     return '$rawScope'.replaceAll(' ', '').trim();
@@ -258,6 +267,9 @@ class _MapScreenState extends State<MapScreen> {
       return _matchesLocation(location, place.title);
     }).toList();
 
+    filtered.sort((a, b) => _parseCreatedAt(b['createdAt'])
+        .compareTo(_parseCreatedAt(a['createdAt'])));
+
     return filtered.take(_maxPopupPosts).map((data) {
       final title = (data['title'] as String?)?.trim().isNotEmpty == true
           ? (data['title'] as String).trim()
@@ -286,53 +298,13 @@ class _MapScreenState extends State<MapScreen> {
     }).toList();
   }
 
-  List<_MapPlaceNotice> _noticesForPlace(MapPlace place) {
-    final keyword = place.title.trim().toLowerCase();
-    final matches = mockListItems.where((item) {
-      if (keyword.isEmpty) return false;
-      return item.title.toLowerCase().contains(keyword) ||
-          item.subtitle.toLowerCase().contains(keyword);
-    }).toList();
-
-    final items = matches.isNotEmpty
-        ? matches
-        : (List<ListItem>.from(mockListItems)
-            ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
-
-    return items.take(_maxPopupNotices).map((item) {
-      final parts = item.subtitle.split('·');
-      final location = parts.isNotEmpty ? parts.first.trim() : item.subtitle;
-      final distanceLabel = parts.length > 1
-          ? parts[1].trim()
-          : '${item.distanceKm.toStringAsFixed(1)}km';
-      final organization = '거리 $distanceLabel · 인기 ${item.popularity}';
-      final createdAtLabel = _formatDate(item.createdAt);
-      final now = DateTime.now();
-      final daysAgo = now.difference(item.createdAt).inDays;
-      final badgeLabel = daysAgo <= 1
-          ? '신규'
-          : item.popularity >= 85
-          ? '인기'
-          : '모집 중';
-
-      return _MapPlaceNotice(
-        title: item.title,
-        location: location,
-        organization: organization,
-        periodLabel: '등록일 $createdAtLabel',
-        image: AssetImage(item.thumbnailAsset),
-        badgeLabel: badgeLabel,
-      );
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isIOS = defaultTargetPlatform == TargetPlatform.iOS;
 
     return Scaffold(
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _postsStream,
+        stream: _buildPostsStream(),
         builder: (context, snapshot) {
           final postDocs =
               snapshot.data?.docs.map((doc) => doc.data()).toList() ??
@@ -363,6 +335,12 @@ class _MapScreenState extends State<MapScreen> {
                             },
                         mapType: MapType.standard,
                         annotations: _annotations,
+                        onTap: (_) {
+                          if (_selectedPlace == null) return;
+                          setState(() {
+                            _selectedPlace = null;
+                          });
+                        },
                       )
                     : Container(
                         color: const Color(0xFFECE8DD),
@@ -380,17 +358,20 @@ class _MapScreenState extends State<MapScreen> {
               const _TopSearchBar(),
               _MapRightControls(onLocationTap: _moveToMyLocation),
               if (_selectedPlace != null)
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _selectedPlace = null),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              if (_selectedPlace != null)
                 Builder(
                   builder: (context) {
                     final posts = _postsForPlace(postDocs, _selectedPlace!);
-                    final notices = _noticesForPlace(_selectedPlace!);
-                    if (posts.isEmpty && notices.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
                     return _MapPlacePopup(
                       title: _selectedPlace!.title,
                       posts: posts,
-                      notices: notices,
                     );
                   },
                 ),
@@ -406,12 +387,10 @@ class _MapPlacePopup extends StatelessWidget {
   const _MapPlacePopup({
     required this.title,
     required this.posts,
-    required this.notices,
   });
 
   final String title;
   final List<_MapPlacePost> posts;
-  final List<_MapPlaceNotice> notices;
 
   @override
   Widget build(BuildContext context) {
@@ -480,14 +459,16 @@ class _MapPlacePopup extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 6),
-                          ],
-                          if (notices.isNotEmpty) ...[
-                            const _PopupSectionTitle(title: '모집 공고'),
-                            const SizedBox(height: 10),
-                            ...notices.map(
-                              (notice) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _MapNoticeCard(notice: notice),
+                          ] else ...[
+                            const Padding(
+                              padding: EdgeInsets.only(top: 4, bottom: 10),
+                              child: Text(
+                                '사용자 후기가 아직 없어요.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF98A0A7),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
@@ -662,114 +643,6 @@ class _MapPostCard extends StatelessWidget {
   }
 }
 
-class _MapNoticeCard extends StatelessWidget {
-  const _MapNoticeCard({required this.notice});
-
-  final _MapPlaceNotice notice;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-            border: Border.all(color: const Color(0xFFF1F2F4)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Image(
-                  image: notice.image,
-                  width: 86,
-                  height: 86,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      notice.title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1F262C),
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      notice.location,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF7E8790),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      notice.organization,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF7E8790),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      notice.periodLabel,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF7E8790),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          right: 14,
-          top: 10,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE7F4FF),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              notice.badgeLabel,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1E7AD4),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _PopupPointerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -807,24 +680,6 @@ class _MapPlacePost {
   final String emojiAsset;
   final int likeCount;
   final int commentCount;
-}
-
-class _MapPlaceNotice {
-  const _MapPlaceNotice({
-    required this.title,
-    required this.location,
-    required this.organization,
-    required this.periodLabel,
-    required this.image,
-    required this.badgeLabel,
-  });
-
-  final String title;
-  final String location;
-  final String organization;
-  final String periodLabel;
-  final ImageProvider image;
-  final String badgeLabel;
 }
 
 class _TopSearchBar extends StatelessWidget {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vomi/services/user_location_service.dart';
 import 'package:vomi/views/main/journal/journal_entry.dart';
@@ -92,10 +93,23 @@ class JournalStorage {
     final entrySignatures = entries.map(_entrySignature).toSet();
 
     Future<void> cleanupQuery(Query<Map<String, dynamic>> query) async {
-      final snapshot = await query.get();
+      QuerySnapshot<Map<String, dynamic>> snapshot;
+      try {
+        snapshot = await query.get();
+      } on FirebaseException catch (e, st) {
+        // Skip cleanup if security rules reject this query shape.
+        debugPrint('Skipping dangling post cleanup query: ${e.code} ${e.message}');
+        debugPrintStack(stackTrace: st);
+        return;
+      }
       final batch = FirebaseFirestore.instance.batch();
+      var hasDeletes = false;
       for (final doc in snapshot.docs) {
         final data = Map<String, dynamic>.from(doc.data());
+        final authorUid = (data['authorUid'] as String?) ?? '';
+        if (authorUid != uid) {
+          continue;
+        }
         final postId = ((data['id'] as String?)?.trim().isNotEmpty ?? false)
             ? (data['id'] as String).trim()
             : doc.id;
@@ -103,16 +117,20 @@ class JournalStorage {
         final keep = entryIds.contains(postId) || entrySignatures.contains(postSignature);
         if (!keep) {
           batch.delete(doc.reference);
+          hasDeletes = true;
         }
       }
+      if (!hasDeletes) return;
       await batch.commit();
     }
 
     await cleanupQuery(_postsRef.where('authorUid', isEqualTo: uid));
-    for (final name in legacyAuthorNames) {
-      final trimmed = name.trim();
-      if (trimmed.isEmpty) continue;
-      await cleanupQuery(_postsRef.where('authorName', isEqualTo: trimmed));
+    // NOTE:
+    // Legacy authorName-only cleanup can fail under Firestore rules because
+    // that query may include posts the current user cannot read.
+    // Keep the parameter for call-site compatibility.
+    if (legacyAuthorNames.isNotEmpty) {
+      debugPrint('Skipping legacy authorName cleanup for uid=$uid');
     }
   }
 

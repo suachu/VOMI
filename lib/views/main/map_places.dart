@@ -35,17 +35,24 @@ class MapPlace {
 // visited: false -> uses 31.png
 const List<MapPlace> mapPlaces = <MapPlace>[
   MapPlace(
-    id: 'beach',
-    title: '바다',
-    latitude: 36.086936,
-    longitude: 129.432869,
+    id: 'animal shelther',
+    title: '포항 동물보호센터',
+    latitude: 36.1456523,
+    longitude: 129.3327358,
     visited: true,
   ),
   MapPlace(
-    id: 'moutain',
-    title: '산',
-    latitude: 36.096504,
-    longitude: 129.389529,
-    visited: false,
+    id: 'pohang beach',
+    title: '포항 영일대 해수욕장',
+    latitude: 36.0561507,
+    longitude: 129.3781717,
+    visited: true,
+  ),
+  MapPlace(
+    id: "pohang children'shome",
+    title: '포항 선린애육원',
+    latitude: 36.0718301,
+    longitude: 129.4000994,
+    visited: true,
   ),
 ];

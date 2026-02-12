@@ -529,13 +529,11 @@ class _DiaryPreviewCard extends StatelessWidget {
                         offset: Offset(0, -f.y(3)),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(f.x(10)),
-                          child: Image.file(
-                            File(entry.imagePaths.first),
+                          child: _journalImageFromPath(
+                            entry.imagePaths.first,
                             width: thumbSize,
                             height: thumbSize,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const SizedBox.shrink(),
                           ),
                         ),
                       ),
@@ -1046,13 +1044,11 @@ class _PostDetailScreen extends StatelessWidget {
                               i < entry.imagePaths.length;
                               i++
                             ) ...[
-                              Image.file(
-                                File(entry.imagePaths[i]),
+                              _journalImageFromPath(
+                                entry.imagePaths[i],
                                 width: double.infinity,
                                 height: f.y(280),
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const SizedBox.shrink(),
                               ),
                               if (i != entry.imagePaths.length - 1)
                                 SizedBox(height: f.y(16)),
@@ -1303,6 +1299,39 @@ class _CalendarDayCell extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _journalImageFromPath(
+  String path, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.cover,
+}) {
+  if (path.startsWith('assets/')) {
+    return Image.asset(
+      path,
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+    );
+  }
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return Image.network(
+      path,
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+    );
+  }
+  return Image.file(
+    File(path),
+    width: width,
+    height: height,
+    fit: fit,
+    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+  );
 }
 
 class _CalendarArrow extends StatelessWidget {
