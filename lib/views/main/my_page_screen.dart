@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:vomi/services/liked_volunteer_service.dart';
 import 'package:vomi/core/theme/colors.dart';
 import 'package:vomi/services/my_page_service.dart';
 import 'package:vomi/services/user_profile_local_service.dart';
@@ -127,6 +128,7 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
     super.initState();
     _summaryFuture = _myPageService.fetchSummary(user: widget.user);
     _loadProfile();
+    LikedVolunteerService.ensureLoaded();
   }
 
   @override
@@ -259,10 +261,6 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
             FutureBuilder<MyPageSummary>(
               future: _summaryFuture,
               builder: (context, snapshot) {
-                final summary = snapshot.data;
-                final isLoading =
-                    snapshot.connectionState == ConnectionState.waiting;
-
                 return Column(
                   children: [
                     Padding(
@@ -356,20 +354,23 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _StatTile(
-                            imagePath: 'assets/images/heart2.png',
-                            imageWidth: 16,
-                            imageHeight: 14,
-                            value:
-                                summary?.likedCount.toString() ??
-                                (isLoading ? '...' : '0'),
-                            label: '찜한\n봉사',
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const TitleOnlyScreen(title: '찜한 봉사'),
-                                ),
+                          child: ValueListenableBuilder<int>(
+                            valueListenable: LikedVolunteerService.likedCount,
+                            builder: (context, likedCount, child) {
+                              return _StatTile(
+                                imagePath: 'assets/images/heart2.png',
+                                imageWidth: 16,
+                                imageHeight: 14,
+                                value: '$likedCount',
+                                label: '찜한\n봉사',
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const TitleOnlyScreen(title: '찜한 봉사'),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),

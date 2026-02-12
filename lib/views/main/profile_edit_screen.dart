@@ -4,7 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vomi/core/theme/colors.dart';
+import 'package:vomi/services/liked_volunteer_service.dart';
 import 'package:vomi/services/user_profile_local_service.dart';
+import 'package:vomi/views/main/list_detail_screen.dart';
+import 'package:vomi/views/main/list_models.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key, required this.user});
@@ -16,7 +19,8 @@ class ProfileEditScreen extends StatefulWidget {
 }
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  final UserProfileLocalService _profileService = const UserProfileLocalService();
+  final UserProfileLocalService _profileService =
+      const UserProfileLocalService();
   late final TextEditingController _nameController;
   late final TextEditingController _idController;
   late final TextEditingController _phoneController;
@@ -102,8 +106,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     final ImageProvider? profileImage = localPhotoAvailable
         ? FileImage(File(_photoPath))
         : (widget.user.photoURL != null
-            ? NetworkImage(widget.user.photoURL!)
-            : null);
+              ? NetworkImage(widget.user.photoURL!)
+              : null);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -223,7 +227,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         left: 11.63 * sx,
                         top: 7 * sy,
                         child: Image(
-                          image: const AssetImage('assets/images/volunteer/b.png'),
+                          image: const AssetImage(
+                            'assets/images/volunteer/b.png',
+                          ),
                           width: 20 * sx,
                           height: 10 * sy,
                         ),
@@ -263,6 +269,8 @@ class TitleOnlyScreen extends StatelessWidget {
 
   final String title;
 
+  bool get _isLikedVolunteerPage => title == '찜한 봉사';
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -276,52 +284,168 @@ class TitleOnlyScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          Positioned(
-            left: 24 * sx,
-            top: backButtonTop,
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              behavior: HitTestBehavior.opaque,
-              child: SizedBox(
-                width: 31.63 * sx,
-                height: 17 * sy,
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 11.63 * sx,
-                      top: 7 * sy,
-                      child: Image(
-                        image: const AssetImage('assets/images/volunteer/b.png'),
-                        width: 20 * sx,
-                        height: 10 * sy,
-                      ),
+      body: FutureBuilder<void>(
+        future: LikedVolunteerService.ensureLoaded(),
+        builder: (context, snapshot) {
+          return Stack(
+            children: [
+              if (_isLikedVolunteerPage)
+                Positioned.fill(
+                  top: 120 * sy,
+                  child: ValueListenableBuilder<List<LikedVolunteer>>(
+                    valueListenable: LikedVolunteerService.likedItems,
+                    builder: (context, items, child) {
+                      if (items.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            '아직 찜한 봉사가 없어요.',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard Variable',
+                              fontSize: 14,
+                              color: Color(0xFF6A7282),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        padding: EdgeInsets.fromLTRB(
+                          24 * sx,
+                          8 * sy,
+                          24 * sx,
+                          24 * sy,
+                        ),
+                        itemCount: items.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          return Material(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ListDetailScreen(
+                                      item: ListItem(
+                                        title: item.title,
+                                        subtitle: item.subtitle,
+                                        distanceKm: 0,
+                                        popularity: 0,
+                                        createdAt: DateTime.now(),
+                                        thumbnailAsset: item.thumbnailAsset,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 54,
+                                      height: 54,
+                                      clipBehavior: Clip.antiAlias,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Image.asset(
+                                        item.thumbnailAsset,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(Icons.pets),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.title,
+                                            style: const TextStyle(
+                                              fontFamily: 'Pretendard Variable',
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            item.subtitle,
+                                            style: const TextStyle(
+                                              fontFamily: 'Pretendard Variable',
+                                              fontSize: 13,
+                                              color: Color(0xFF6A7282),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              Positioned(
+                left: 24 * sx,
+                top: backButtonTop,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  behavior: HitTestBehavior.opaque,
+                  child: SizedBox(
+                    width: 31.63 * sx,
+                    height: 17 * sy,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: 11.63 * sx,
+                          top: 7 * sy,
+                          child: Image(
+                            image: const AssetImage(
+                              'assets/images/volunteer/b.png',
+                            ),
+                            width: 20 * sx,
+                            height: 10 * sy,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: titleTop,
-            child: Center(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontFamily: 'Pretendard Variable',
-                  fontSize: 18 * sx,
-                  fontWeight: FontWeight.w500,
-                  height: 1.0,
-                  letterSpacing: 0,
-                  color: const Color(0xFF000000),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: titleTop,
+                child: Center(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Pretendard Variable',
+                      fontSize: 18 * sx,
+                      fontWeight: FontWeight.w500,
+                      height: 1.0,
+                      letterSpacing: 0,
+                      color: const Color(0xFF000000),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

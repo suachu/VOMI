@@ -76,7 +76,7 @@ class PostActionsRow extends StatelessWidget {
                   ),
                   onPressed: onOpenFacility,
                   child: const Text(
-                    '이 봉사 구경가기',
+                    '이 기관 구경가기',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,

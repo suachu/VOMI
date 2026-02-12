@@ -10,7 +10,7 @@ class FacilityDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('시설 정보'),
+        title: const Text('세부 정보'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

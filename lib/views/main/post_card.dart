@@ -32,6 +32,7 @@ class Post {
   final int likeCount;
   final int commentCount;
   final int saveCount;
+  final int emotionIndex;
 
   final ImageProvider emojiImage;
   final List<PostBlock> blocks;
@@ -47,6 +48,7 @@ class Post {
     required this.likeCount,
     required this.commentCount,
     required this.saveCount,
+    required this.emotionIndex,
     required this.emojiImage,
     required this.blocks,
   });
@@ -67,10 +69,7 @@ class PostCard extends StatelessWidget {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 354,
-          maxHeight: 632,
-        ),
+        constraints: const BoxConstraints(maxWidth: 354, maxHeight: 632),
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -113,9 +112,7 @@ class PostCard extends StatelessWidget {
           widgets.add(
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Center(
-                child: _FixedImage(image: left),
-              ),
+              child: Center(child: _FixedImage(image: left)),
             ),
           );
         } else {
@@ -158,7 +155,9 @@ class PostCard extends StatelessWidget {
               block.text,
               style: AppTextStyles.body,
               maxLines: isLastText ? 5 : null,
-              overflow: isLastText ? TextOverflow.ellipsis : TextOverflow.visible,
+              overflow: isLastText
+                  ? TextOverflow.ellipsis
+                  : TextOverflow.visible,
             ),
           ),
         );
@@ -189,10 +188,7 @@ class _FixedImage extends StatelessWidget {
       child: SizedBox(
         width: _imgW,
         height: _imgH,
-        child: Image(
-          image: image,
-          fit: BoxFit.cover,
-        ),
+        child: Image(image: image, fit: BoxFit.cover),
       ),
     );
   }
@@ -206,9 +202,31 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final image = post.profileImage;
+    final isDefaultVAsset =
+        image is AssetImage && image.assetName.endsWith('/V.png');
+
     return Row(
       children: [
-        CircleAvatar(radius: 18, backgroundImage: post.profileImage),
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: Colors.transparent,
+          backgroundImage: isDefaultVAsset ? null : image,
+          child: isDefaultVAsset
+              ? ColorFiltered(
+                  colorFilter: const ColorFilter.mode(
+                    Color(0xFFACD7E6),
+                    BlendMode.srcIn,
+                  ),
+                  child: Image(
+                    image: image,
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              : null,
+        ),
         const SizedBox(width: 8),
         Text(post.userName, style: AppTextStyles.username),
       ],
@@ -222,8 +240,35 @@ class _TitleRow extends StatelessWidget {
   final Post post;
   const _TitleRow(this.post);
 
+  static const _emotionImagePaths = [
+    'assets/images/love.png',
+    'assets/images/emotion_neutral.png',
+    'assets/images/sad.png',
+    'assets/images/emotion_proud.png',
+    'assets/images/emotion_happy.png',
+  ];
+
+  static const _emotionFillColors = [
+    Color(0xFFFFE7D1),
+    Color(0xFFE5FFFA),
+    Color(0xFFEFFEFF),
+    Color(0xFFEEFFF0),
+    Color(0xFFFFFAE7),
+  ];
+
+  static const _iconSizes = <(double width, double height)>[
+    (42, 35.73),
+    (42, 42),
+    (42, 42),
+    (42, 42.36),
+    (42, 42),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final safe = post.emotionIndex.clamp(0, 4);
+    final iconSize = _iconSizes[safe];
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -242,13 +287,15 @@ class _TitleRow extends StatelessWidget {
           child: Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFFFFF4D6),
+              color: _emotionFillColors[safe],
             ),
             alignment: Alignment.center,
-            child: Image(
-              image: post.emojiImage,
+            child: Image.asset(
+              _emotionImagePaths[safe],
+              width: iconSize.$1 * (18 / 42),
+              height: iconSize.$2 * (18 / 42),
               fit: BoxFit.contain,
             ),
           ),

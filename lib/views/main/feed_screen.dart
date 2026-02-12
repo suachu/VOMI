@@ -171,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
       likeCount: data['likeCount'] as int? ?? 0,
       commentCount: data['commentCount'] as int? ?? 0,
       saveCount: data['saveCount'] as int? ?? data['shareCount'] as int? ?? 0,
+      emotionIndex: emotionIndex,
       emojiImage: AssetImage(emojiAsset),
       blocks: blocks.isNotEmpty ? blocks : [TextBlock('내용이 없습니다.')],
     );

@@ -496,19 +496,7 @@ class _DiaryPreviewCard extends StatelessWidget {
               color: Color(0xFFB1B3B9),
             ),
           ),
-          SizedBox(height: f.y(1)),
-          Text(
-            entry.location,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontFamily: 'Pretendard Variable',
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF9DA7AE),
-            ),
-          ),
-          SizedBox(height: f.y(2)),
+          SizedBox(height: f.y(10)),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -955,7 +943,7 @@ class _PostDetailScreen extends StatelessWidget {
                                       _showMoreMenu(context, anchorContext),
                                   behavior: HitTestBehavior.opaque,
                                   child: const Image(
-                                    image: AssetImage('assets/images/점3.png'),
+                                    image: AssetImage('assets/images/점3.png'),
                                     width: 20,
                                     height: 20,
                                     fit: BoxFit.contain,
@@ -967,7 +955,7 @@ class _PostDetailScreen extends StatelessWidget {
                           SizedBox(height: f.y(16)),
                           SizedBox(height: f.y(12)),
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: Text(
@@ -998,8 +986,9 @@ class _PostDetailScreen extends StatelessWidget {
                               ),
                             ],
                           ),
+                          SizedBox(height: f.y(0.5)),
                           Transform.translate(
-                            offset: Offset(0, -f.y(20)),
+                            offset: Offset(0, -f.y(10)),
                             child: Text(
                               '$dt · ${_scopeLabel[entry.scope] ?? '전체공개'}',
                               style: const TextStyle(
@@ -1010,23 +999,27 @@ class _PostDetailScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-                          if (entry.location.isNotEmpty) ...[
-                            SizedBox(height: f.y(8)),
-                            Row(
+                          SizedBox(height: f.y(2)),
+                          Transform.translate(
+                            offset: Offset(0, -f.y(10)),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
-                                  Icons.location_on_rounded,
-                                  size: 18,
-                                  color: Color(0xFFA9D8EA),
+                                const Image(
+                                  image: AssetImage('assets/images/location.png'),
+                                  width: 14,
+                                  height: 14,
+                                  fit: BoxFit.contain,
                                 ),
                                 SizedBox(width: f.x(4)),
                                 Expanded(
                                   child: Text(
-                                    entry.location,
+                                    entry.location.isNotEmpty
+                                        ? entry.location
+                                        : '위치 정보 없음',
                                     style: const TextStyle(
                                       fontFamily: 'Pretendard Variable',
-                                      fontSize: 13,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w400,
                                       color: Color(0xFF7D878F),
                                     ),
@@ -1034,8 +1027,8 @@ class _PostDetailScreen extends StatelessWidget {
                                 ),
                               ],
                             ),
-                          ],
-                          SizedBox(height: f.y(16)),
+                          ),
+                          SizedBox(height: f.y(24)),
                           Text(
                             entry.content,
                             style: const TextStyle(
@@ -1053,16 +1046,13 @@ class _PostDetailScreen extends StatelessWidget {
                               i < entry.imagePaths.length;
                               i++
                             ) ...[
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(f.x(4)),
-                                child: Image.file(
-                                  File(entry.imagePaths[i]),
-                                  width: double.infinity,
-                                  height: f.y(280),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const SizedBox.shrink(),
-                                ),
+                              Image.file(
+                                File(entry.imagePaths[i]),
+                                width: double.infinity,
+                                height: f.y(280),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const SizedBox.shrink(),
                               ),
                               if (i != entry.imagePaths.length - 1)
                                 SizedBox(height: f.y(16)),
