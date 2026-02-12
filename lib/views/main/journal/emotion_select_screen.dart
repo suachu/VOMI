@@ -16,23 +16,23 @@ class _EmotionSelectScreenState extends State<EmotionSelectScreen> {
   static const _items = <_EmotionItem>[
     _EmotionItem(
       iconAssetPath: 'assets/images/love.png',
-      fillColor: Color(0xFFFFE8D2),
+      fillColor: Color(0xFFFFE7D1),
     ),
     _EmotionItem(
       iconAssetPath: 'assets/images/emotion_neutral.png',
-      fillColor: Color(0xFFDDF6F3),
+      fillColor: Color(0xFFE5FFFA),
     ),
     _EmotionItem(
       iconAssetPath: 'assets/images/sad.png',
-      fillColor: Color(0xFFDBF1F6),
+      fillColor: Color(0xFFEFFEFF),
     ),
     _EmotionItem(
       iconAssetPath: 'assets/images/emotion_proud.png',
-      fillColor: Color(0xFFE1F4E5),
+      fillColor: Color(0xFFEEFFF0),
     ),
     _EmotionItem(
       iconAssetPath: 'assets/images/emotion_happy.png',
-      fillColor: Color(0xFFFFF7D8),
+      fillColor: Color(0xFFFFFAE7),
     ),
   ];
 

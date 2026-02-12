@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:vomi/core/theme/colors.dart';
 import 'package:vomi/services/my_page_service.dart';
+import 'package:vomi/services/user_profile_local_service.dart';
 import 'package:vomi/views/main/profile_edit_screen.dart';
 
 class MyPageScreen extends StatelessWidget {
@@ -99,12 +102,27 @@ class _ProfileSummaryCard extends StatefulWidget {
 
 class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
   final MyPageService _myPageService = const MyPageService();
+  final UserProfileLocalService _profileService = const UserProfileLocalService();
   late Future<MyPageSummary> _summaryFuture;
+  String _displayName = '이름 없음';
+  String _appId = 'vomi_user';
+  String _photoPath = '';
+
+  Future<void> _loadProfile() async {
+    final profile = await _profileService.ensure(widget.user);
+    if (!mounted) return;
+    setState(() {
+      _displayName = profile.name;
+      _appId = profile.appId;
+      _photoPath = profile.photoPath;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _summaryFuture = _myPageService.fetchSummary(user: widget.user);
+    _loadProfile();
   }
 
   @override
@@ -112,18 +130,19 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user.uid != widget.user.uid) {
       _summaryFuture = _myPageService.fetchSummary(user: widget.user);
+      _loadProfile();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final displayName = (widget.user.displayName?.trim().isNotEmpty ?? false)
-        ? widget.user.displayName!.trim()
-        : '이름 없음';
-    final email = (widget.user.email?.trim().isNotEmpty ?? false)
-        ? widget.user.email!.trim()
-        : '@email';
-
+    final localPhotoAvailable =
+        _photoPath.isNotEmpty && File(_photoPath).existsSync();
+    final ImageProvider? profileImage = localPhotoAvailable
+        ? FileImage(File(_photoPath))
+        : (widget.user.photoURL != null
+            ? NetworkImage(widget.user.photoURL!)
+            : null);
     return Center(
       child: Container(
         width: 354,
@@ -145,10 +164,8 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                       CircleAvatar(
                         radius: 31,
                         backgroundColor: const Color(0xFFE8E8E8),
-                        backgroundImage: widget.user.photoURL != null
-                            ? NetworkImage(widget.user.photoURL!)
-                            : null,
-                        child: widget.user.photoURL == null
+                        backgroundImage: profileImage,
+                        child: !localPhotoAvailable && widget.user.photoURL == null
                             ? const Icon(
                                 Icons.person_rounded,
                                 size: 34,
@@ -164,7 +181,7 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                displayName,
+                                _displayName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -178,7 +195,7 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                email.startsWith('@') ? email : '@$email',
+                                '@$_appId',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -200,12 +217,13 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                     left: 270,
                     top: 26.5,
                     child: TextButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
+                      onPressed: () async {
+                        await Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => ProfileEditScreen(user: widget.user),
                           ),
                         );
+                        _loadProfile();
                       },
                       style: TextButton.styleFrom(
                         foregroundColor: const Color(0xFF636E72),

@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:vomi/core/theme/colors.dart';
+import 'package:vomi/services/user_profile_local_service.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key, required this.user});
@@ -13,30 +16,73 @@ class ProfileEditScreen extends StatefulWidget {
 }
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  static const _addressKey = 'profile_edit_address';
+  final UserProfileLocalService _profileService = const UserProfileLocalService();
+  late final TextEditingController _nameController;
+  late final TextEditingController _idController;
+  late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
+  final ImagePicker _imagePicker = ImagePicker();
+  String _email = '이메일 없음';
+  String _photoPath = '';
 
-  Future<void> _loadAddress() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_addressKey) ?? '';
+  Future<void> _loadProfile() async {
+    final profile = await _profileService.ensure(widget.user);
     if (!mounted) return;
-    _addressController.text = saved;
+    _nameController.text = profile.name;
+    _idController.text = profile.appId;
+    _phoneController.text = profile.phone;
+    _addressController.text = profile.address;
+    _photoPath = profile.photoPath;
+    _email = (widget.user.email?.trim().isNotEmpty ?? false)
+        ? widget.user.email!.trim()
+        : '이메일 없음';
+    setState(() {});
   }
 
-  Future<void> _saveAddressValue(String value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_addressKey, value.trim());
+  Future<void> _saveName(String value) async =>
+      _profileService.saveName(widget.user, value);
+  Future<void> _saveId(String value) async =>
+      _profileService.saveAppId(widget.user, value);
+  Future<void> _savePhone(String value) async =>
+      _profileService.savePhone(widget.user, value);
+  Future<void> _saveAddress(String value) async =>
+      _profileService.saveAddress(widget.user, value);
+
+  Future<void> _pickProfilePhoto() async {
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 90,
+        maxWidth: 1800,
+      );
+      if (!mounted || picked == null) return;
+      await _profileService.savePhotoPath(widget.user, picked.path);
+      setState(() {
+        _photoPath = picked.path;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('사진을 불러오지 못했어요. 권한을 확인해주세요.')),
+      );
+    }
   }
 
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController();
+    _idController = TextEditingController();
+    _phoneController = TextEditingController();
     _addressController = TextEditingController();
-    _loadAddress();
+    _loadProfile();
   }
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _idController.dispose();
+    _phoneController.dispose();
     _addressController.dispose();
     super.dispose();
   }
@@ -51,18 +97,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     final titleTop = 70 * sy;
     final titleCenterY = titleTop + ((18 * sx) / 2);
     final backButtonTop = titleCenterY - (12 * sy);
-    final name = (widget.user.displayName?.trim().isNotEmpty ?? false)
-        ? widget.user.displayName!.trim()
-        : '이름 없음';
-    final id = (widget.user.email?.split('@').first.trim().isNotEmpty ?? false)
-        ? widget.user.email!.split('@').first.trim()
-        : '아이디 없음';
-    final email = (widget.user.email?.trim().isNotEmpty ?? false)
-        ? widget.user.email!.trim()
-        : '이메일 없음';
-    final profileImage = widget.user.photoURL != null
-        ? NetworkImage(widget.user.photoURL!)
-        : null;
+    final localPhotoAvailable =
+        _photoPath.isNotEmpty && File(_photoPath).existsSync();
+    final ImageProvider? profileImage = localPhotoAvailable
+        ? FileImage(File(_photoPath))
+        : (widget.user.photoURL != null
+            ? NetworkImage(widget.user.photoURL!)
+            : null);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -92,23 +133,37 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   child: Column(
                     children: [
                       SizedBox(height: 15 * sy),
-                      _ProfileInfoRow(label: '이름', value: name, scale: sx),
-                      SizedBox(height: 38 * sy),
-                      _ProfileInfoRow(label: '아이디', value: id, scale: sx),
-                      SizedBox(height: 38 * sy),
-                      _ProfileInfoRow(
-                        label: '전화번호',
-                        value: '010-1234-5678',
+                      _EditableAddressRow(
+                        label: '이름',
+                        controller: _nameController,
                         scale: sx,
+                        hintText: '이름 입력',
+                        onChanged: _saveName,
                       ),
                       SizedBox(height: 38 * sy),
-                      _ProfileInfoRow(label: '이메일주소', value: email, scale: sx),
+                      _EditableAddressRow(
+                        label: '아이디',
+                        controller: _idController,
+                        scale: sx,
+                        hintText: '아이디 입력',
+                        onChanged: _saveId,
+                      ),
+                      SizedBox(height: 38 * sy),
+                      _EditableAddressRow(
+                        label: '전화번호',
+                        controller: _phoneController,
+                        scale: sx,
+                        hintText: '전화번호 입력',
+                        onChanged: _savePhone,
+                      ),
+                      SizedBox(height: 38 * sy),
+                      _ProfileInfoRow(label: '이메일주소', value: _email, scale: sx),
                       SizedBox(height: 38 * sy),
                       _EditableAddressRow(
                         label: '집주소',
                         controller: _addressController,
                         scale: sx,
-                        onChanged: _saveAddressValue,
+                        onChanged: _saveAddress,
                       ),
                     ],
                   ),
@@ -134,19 +189,22 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             Positioned(
               left: 152 * sx,
               top: 253 * sy,
-              child: Text(
-                '프로필 사진 수정',
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.visible,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Pretendard Variable',
-                  fontSize: 14 * sx,
-                  fontWeight: FontWeight.w500,
-                  height: 20 / 14,
-                  letterSpacing: 0,
-                  color: const Color(0xFF00A5DF),
+              child: GestureDetector(
+                onTap: _pickProfilePhoto,
+                child: Text(
+                  '프로필 사진 수정',
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.visible,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard Variable',
+                    fontSize: 14 * sx,
+                    fontWeight: FontWeight.w500,
+                    height: 20 / 14,
+                    letterSpacing: 0,
+                    color: const Color(0xFF00A5DF),
+                  ),
                 ),
               ),
             ),
@@ -320,12 +378,14 @@ class _EditableAddressRow extends StatelessWidget {
     required this.controller,
     required this.scale,
     required this.onChanged,
+    this.hintText = '집주소 추가',
   });
 
   final String label;
   final TextEditingController controller;
   final double scale;
   final ValueChanged<String> onChanged;
+  final String hintText;
 
   @override
   Widget build(BuildContext context) {
@@ -356,7 +416,7 @@ class _EditableAddressRow extends StatelessWidget {
               color: const Color(0xFF2F3338),
             ),
             decoration: InputDecoration.collapsed(
-              hintText: '집주소 추가',
+              hintText: hintText,
               hintStyle: TextStyle(
                 fontFamily: 'Pretendard Variable',
                 fontSize: 14 * scale,
