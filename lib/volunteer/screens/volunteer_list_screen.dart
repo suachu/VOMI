@@ -1060,8 +1060,11 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
                                                 itemCount:
                                                     _cityOptionsForFilter()
                                                         .length,
-                                                separatorBuilder: (_, __) =>
-                                                    const SizedBox(height: 20),
+                                                separatorBuilder:
+                                                    (context, index) =>
+                                                        const SizedBox(
+                                                          height: 20,
+                                                        ),
                                                 itemBuilder: (context, index) {
                                                   final city =
                                                       _cityOptionsForFilter()[index];
@@ -1105,8 +1108,11 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
                                                 itemCount:
                                                     _districtOptionsForFilter()
                                                         .length,
-                                                separatorBuilder: (_, __) =>
-                                                    const SizedBox(height: 20),
+                                                separatorBuilder:
+                                                    (context, index) =>
+                                                        const SizedBox(
+                                                          height: 20,
+                                                        ),
                                                 itemBuilder: (context, index) {
                                                   final district =
                                                       _districtOptionsForFilter()[index];
@@ -1139,7 +1145,7 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
                                       18,
                                     ),
                                     itemCount: _filterOptionsForTab().length,
-                                    separatorBuilder: (_, __) =>
+                                    separatorBuilder: (context, index) =>
                                         const SizedBox(height: 20),
                                     itemBuilder: (context, index) {
                                       final text =

@@ -15,7 +15,10 @@ class MyPageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final safeTop = MediaQuery.of(context).padding.top;
     final figmaTopFromScreen = 83.0;
-    final listTopPadding = (figmaTopFromScreen - safeTop).clamp(0.0, figmaTopFromScreen);
+    final listTopPadding = (figmaTopFromScreen - safeTop).clamp(
+      0.0,
+      figmaTopFromScreen,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -102,7 +105,8 @@ class _ProfileSummaryCard extends StatefulWidget {
 
 class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
   final MyPageService _myPageService = const MyPageService();
-  final UserProfileLocalService _profileService = const UserProfileLocalService();
+  final UserProfileLocalService _profileService =
+      const UserProfileLocalService();
   late Future<MyPageSummary> _summaryFuture;
   String _displayName = '이름 없음';
   String _appId = 'vomi_user';
@@ -141,8 +145,8 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
     final ImageProvider? profileImage = localPhotoAvailable
         ? FileImage(File(_photoPath))
         : (widget.user.photoURL != null
-            ? NetworkImage(widget.user.photoURL!)
-            : null);
+              ? NetworkImage(widget.user.photoURL!)
+              : null);
     return Center(
       child: Container(
         width: 354,
@@ -165,7 +169,8 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                         radius: 31,
                         backgroundColor: const Color(0xFFE8E8E8),
                         backgroundImage: profileImage,
-                        child: !localPhotoAvailable && widget.user.photoURL == null
+                        child:
+                            !localPhotoAvailable && widget.user.photoURL == null
                             ? const Icon(
                                 Icons.person_rounded,
                                 size: 34,
@@ -220,7 +225,8 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                       onPressed: () async {
                         await Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => ProfileEditScreen(user: widget.user),
+                            builder: (_) =>
+                                ProfileEditScreen(user: widget.user),
                           ),
                         );
                         _loadProfile();
@@ -282,7 +288,9 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   Image(
-                                    image: AssetImage('assets/images/time22.png'),
+                                    image: AssetImage(
+                                      'assets/images/time22.png',
+                                    ),
                                     width: 13.333333969116211,
                                     height: 13.333333969116211,
                                   ),
@@ -339,9 +347,8 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                             onTap: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => const TitleOnlyScreen(
-                                    title: '참여 완료한 봉사',
-                                  ),
+                                  builder: (_) =>
+                                      const TitleOnlyScreen(title: '참여 완료한 봉사'),
                                 ),
                               );
                             },
@@ -353,7 +360,8 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                             imagePath: 'assets/images/heart2.png',
                             imageWidth: 16,
                             imageHeight: 14,
-                            value: summary?.likedCount.toString() ??
+                            value:
+                                summary?.likedCount.toString() ??
                                 (isLoading ? '...' : '0'),
                             label: '찜한\n봉사',
                             onTap: () {
@@ -451,10 +459,7 @@ class _StatTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFEFEFEF),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
           boxShadow: const [
             BoxShadow(
               color: Color(0x40000000),
@@ -569,9 +574,8 @@ class _ArrowListTile extends StatelessWidget {
                       Color(0xFFB1B3B9),
                       BlendMode.srcIn,
                     ),
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()..scale(-1.0, 1.0),
+                    child: Transform.flip(
+                      flipX: true,
                       child: const Image(
                         image: AssetImage('assets/images/volunteer/b.png'),
                         width: 4.89,
@@ -592,43 +596,39 @@ class _ArrowListTile extends StatelessWidget {
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard();
 
-  static const _items = <({
-    String iconPath,
-    double iconWidth,
-    double iconHeight,
-    String label,
-  })>[
-    (
-      iconPath: 'assets/images/설정.png',
-      iconWidth: 16,
-      iconHeight: 16,
-      label: '계정 설정',
-    ),
-    (
-      iconPath: 'assets/images/벨 아이콘.png',
-      iconWidth: 11.75,
-      iconHeight: 12.74,
-      label: '알림 설정',
-    ),
-    (
-      iconPath: 'assets/images/활동 내역 관리 아이콘.png',
-      iconWidth: 15,
-      iconHeight: 15,
-      label: '활동 내역 관리',
-    ),
-    (
-      iconPath: 'assets/images/소셜 아이콘.png',
-      iconWidth: 14,
-      iconHeight: 14,
-      label: '소셜 로그인 연동 관리',
-    ),
-    (
-      iconPath: 'assets/images/개인정보 아이콘.png',
-      iconWidth: 14,
-      iconHeight: 14,
-      label: '개인정보 처리방침 / 이용약관',
-    ),
-  ];
+  static const _items =
+      <({String iconPath, double iconWidth, double iconHeight, String label})>[
+        (
+          iconPath: 'assets/images/설정.png',
+          iconWidth: 16,
+          iconHeight: 16,
+          label: '계정 설정',
+        ),
+        (
+          iconPath: 'assets/images/벨 아이콘.png',
+          iconWidth: 11.75,
+          iconHeight: 12.74,
+          label: '알림 설정',
+        ),
+        (
+          iconPath: 'assets/images/활동 내역 관리 아이콘.png',
+          iconWidth: 15,
+          iconHeight: 15,
+          label: '활동 내역 관리',
+        ),
+        (
+          iconPath: 'assets/images/소셜 아이콘.png',
+          iconWidth: 14,
+          iconHeight: 14,
+          label: '소셜 로그인 연동 관리',
+        ),
+        (
+          iconPath: 'assets/images/개인정보 아이콘.png',
+          iconWidth: 14,
+          iconHeight: 14,
+          label: '개인정보 처리방침 / 이용약관',
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -752,9 +752,8 @@ class _SettingsRow extends StatelessWidget {
                   Color(0xFFB1B3B9),
                   BlendMode.srcIn,
                 ),
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()..scale(-1.0, 1.0),
+                child: Transform.flip(
+                  flipX: true,
                   child: const Image(
                     image: AssetImage('assets/images/volunteer/b.png'),
                     width: 4.89,

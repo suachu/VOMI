@@ -24,7 +24,8 @@ class JournalWriteScreen extends StatefulWidget {
 }
 
 class _JournalWriteScreenState extends State<JournalWriteScreen> {
-  final UserProfileLocalService _profileService = const UserProfileLocalService();
+  final UserProfileLocalService _profileService =
+      const UserProfileLocalService();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
@@ -86,9 +87,7 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('사진 권한이 필요하거나, 사진 선택 중 오류가 발생했어요.'),
-        ),
+        const SnackBar(content: Text('사진 권한이 필요하거나, 사진 선택 중 오류가 발생했어요.')),
       );
     }
   }
@@ -207,11 +206,7 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
               left: 0,
               top: 0,
               right: 0,
-              child: Container(
-                width: 402,
-                height: 106,
-                color: Colors.white,
-              ),
+              child: Container(width: 402, height: 106, color: Colors.white),
             ),
             Positioned(
               left: 35,
@@ -270,14 +265,8 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                   child: Row(
                     children: [
                       _buildScopeChip('비공개', Icons.lock_outline_rounded),
-                      _buildScopeChip(
-                        '친구공개',
-                        Icons.group_outlined,
-                      ),
-                      _buildScopeChip(
-                        '전체공개',
-                        Icons.public_rounded,
-                      ),
+                      _buildScopeChip('친구공개', Icons.group_outlined),
+                      _buildScopeChip('전체공개', Icons.public_rounded),
                     ],
                   ),
                 ),
@@ -419,7 +408,8 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: _pickedImages.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 8),
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(width: 8),
                             itemBuilder: (context, index) {
                               return Stack(
                                 children: [

@@ -22,9 +22,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  final UserProfileLocalService _profileService = const UserProfileLocalService();
+  final UserProfileLocalService _profileService =
+      const UserProfileLocalService();
   static const Set<String> _friendNames = {'미스터츄'};
-<<<<<<< HEAD
   static const Set<String> _publicScopes = {'전체공개', '전체 공개', '전체'};
   static const Set<String> _friendVisibleScopes = {
     '전체공개',
@@ -35,20 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
     '친구',
   };
   String filter = '전체';
-=======
-  static const Set<String> _publicScopes = {'전체공개', '전체'};
-  static const Set<String> _friendVisibleScopes = {
-    '전체공개',
-    '전체',
-    '친구공개',
-    '친구',
-  };
-  String filter = '전체';
-  bool _isLiked = false;
-  bool _isSaved = false;
   List<Post> _lastGoodPosts = const [];
   String _myDisplayName = '';
->>>>>>> 9d5ec26 (내 작업 내용)
 
   bool get _isLoggedIn => FirebaseAuth.instance.currentUser != null;
 
@@ -79,10 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     await JournalStorage.cleanupDanglingPostsForUser(
       uid: user.uid,
-      legacyAuthorNames: {
-        profile.name,
-        (user.displayName ?? '').trim(),
-      },
+      legacyAuthorNames: {profile.name, (user.displayName ?? '').trim()},
     );
   }
 
@@ -93,16 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Query<Map<String, dynamic>> _buildQuery() {
-<<<<<<< HEAD
-    final effectiveFilter =
-        (!_isLoggedIn && filter == '내 친구') ? '전체' : filter;
-    final scopes = effectiveFilter == '내 친구'
-        ? _friendVisibleScopes.toList()
-        : _publicScopes.toList();
-    return FirebaseFirestore.instance
-        .collection('posts')
-        .where('scope', whereIn: scopes);
-=======
     return FirebaseFirestore.instance.collection('posts').limit(300);
   }
 
@@ -113,7 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return DateTime.tryParse(createdAtRaw)?.millisecondsSinceEpoch ?? 0;
     }
     return 0;
->>>>>>> 9d5ec26 (내 작업 내용)
   }
 
   String _normalizeScope(dynamic rawScope) {
@@ -126,14 +100,14 @@ class _HomeScreenState extends State<HomeScreen> {
       return createdAtRaw.toDate();
     }
     if (createdAtRaw is String) {
-      return DateTime.tryParse(createdAtRaw) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime.tryParse(createdAtRaw) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
     }
     return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   bool _isVisibleForCurrentFilter(Map<String, dynamic> data) {
-    final effectiveFilter =
-        (!_isLoggedIn && filter == '내 친구') ? '전체' : filter;
+    final effectiveFilter = (!_isLoggedIn && filter == '내 친구') ? '전체' : filter;
     final scope = _normalizeScope(data['scope']);
     if (effectiveFilter == '내 친구') {
       return _friendVisibleScopes.contains(scope);
@@ -141,14 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return _publicScopes.contains(scope);
   }
 
-<<<<<<< HEAD
-  Post _postFromDoc(String id, Map<String, dynamic> data) {
-    final authorName =
-        (data['authorName'] as String?)?.trim().isNotEmpty == true
-            ? (data['authorName'] as String).trim()
-            : '익명';
-=======
-  Post _postFromDoc(Map<String, dynamic> data) {
+  Post _postFromDoc(String docId, Map<String, dynamic> data) {
     final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final authorUid = (data['authorUid'] as String?) ?? '';
     final authorName = (authorUid == myUid && _myDisplayName.trim().isNotEmpty)
@@ -156,7 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
         : ((data['authorName'] as String?)?.trim().isNotEmpty == true
               ? (data['authorName'] as String).trim()
               : '익명');
->>>>>>> 9d5ec26 (내 작업 내용)
     final authorPhotoUrl = (data['authorPhotoUrl'] as String?) ?? '';
     final title = (data['title'] as String?)?.trim() ?? '';
     final content = (data['content'] as String?)?.trim() ?? '';
@@ -187,7 +153,9 @@ class _HomeScreenState extends State<HomeScreen> {
     };
 
     return Post(
-      id: id,
+      id: ((data['id'] as String?)?.trim().isNotEmpty ?? false)
+          ? (data['id'] as String).trim()
+          : docId,
       userName: authorName,
       profileImage: authorPhotoUrl.isNotEmpty
           ? NetworkImage(authorPhotoUrl)
@@ -235,205 +203,140 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, hiddenIds, _) {
           return ValueListenableBuilder<Set<String>>(
             valueListenable: PostVisibilityRegistry.hiddenPostKeys,
-            builder: (context, hiddenKeys, __) {
-          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: _buildQuery().snapshots(),
-            builder: (context, snapshot) {
-          if (snapshot.hasError) {
-<<<<<<< HEAD
-            debugPrint('Feed load error: ${snapshot.error}');
-=======
-            if (_lastGoodPosts.isNotEmpty) {
-              return ListView.separated(
-                padding: EdgeInsets.fromLTRB(0, 16, 0, bottomInset),
-                itemCount: _lastGoodPosts.length,
-                separatorBuilder: (_, index) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  final post = _lastGoodPosts[index];
-                  return Column(
-                    children: [
-                      PostCard(post: post),
-                      const SizedBox(height: 10),
-                      PostActionsRow(
-                        post: post,
-                        isLiked: _isLiked,
-                        isSaved: _isSaved,
-                        onToggleLike: () {
-                          if (!_isLoggedIn) {
-                            _promptLogin();
-                            return;
-                          }
-                          setState(() => _isLiked = !_isLiked);
-                        },
-                        onToggleSave: () {
-                          if (!_isLoggedIn) {
-                            _promptLogin();
-                            return;
-                          }
-                          setState(() => _isSaved = !_isSaved);
-                        },
-                        onOpenFacility: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => FacilityDetailScreen(
-                                facility: post.facility,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  );
-                },
-              );
-            }
->>>>>>> 9d5ec26 (내 작업 내용)
-            return const Center(
-              child: Text(
-                '피드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
-                style: TextStyle(fontSize: 15, color: Color(0xFF7A838A)),
-              ),
-            );
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-<<<<<<< HEAD
-          final docs = (snapshot.data?.docs ?? const [])
-              .toList()
-            ..sort(
-              (a, b) => _parseCreatedAt(b.data()['createdAt'])
-                  .compareTo(_parseCreatedAt(a.data()['createdAt'])),
-            );
-          final posts = docs
-              .where((doc) => _isVisibleForCurrentFilter(doc.data()))
-              .map((doc) => _postFromDoc(doc.id, doc.data()))
-=======
-          final docs = snapshot.data?.docs ?? const [];
-          final filteredDocs = docs
-              .where((doc) => _isVisibleForCurrentFilter(doc.data()))
-              .where((doc) {
-                final data = doc.data();
-                final postId = ((data['id'] as String?)?.trim().isNotEmpty ??
-                        false)
-                    ? (data['id'] as String).trim()
-                    : doc.id;
-                if (hiddenIds.contains(postId)) return false;
-                final createdAtMillis = _createdAtMillis(data);
-                final signature = PostVisibilityRegistry.keyFromRaw(
-                  authorUid: (data['authorUid'] as String?) ?? '',
-                  title: (data['title'] as String?) ?? '',
-                  location: (data['location'] as String?) ?? '',
-                  content: (data['content'] as String?) ?? '',
-                  createdAtMillis: createdAtMillis,
-                );
-                return !hiddenKeys.contains(signature);
-              })
-              .toList()
-            ..sort(
-              (a, b) =>
-                  _createdAtMillis(b.data()).compareTo(_createdAtMillis(a.data())),
-            );
-          final posts = filteredDocs
-              .map((doc) => _postFromDoc(doc.data()))
->>>>>>> 9d5ec26 (내 작업 내용)
-              .where(
-                (post) => filter != '내 친구' || _friendNames.contains(post.userName),
-              )
-              .toList();
-
-          if (posts.isNotEmpty) {
-            _lastGoodPosts = posts;
-          }
-
-          if (posts.isEmpty) {
-            if (_lastGoodPosts.isNotEmpty) {
-              return ListView.separated(
-                padding: EdgeInsets.fromLTRB(0, 16, 0, bottomInset),
-                itemCount: _lastGoodPosts.length,
-                separatorBuilder: (_, index) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  final post = _lastGoodPosts[index];
-                  return Column(
-                    children: [
-                      PostCard(post: post),
-                      const SizedBox(height: 10),
-                      PostActionsRow(
-                        post: post,
-                        isLiked: _isLiked,
-                        isSaved: _isSaved,
-                        onToggleLike: () {
-                          if (!_isLoggedIn) {
-                            _promptLogin();
-                            return;
-                          }
-                          setState(() => _isLiked = !_isLiked);
-                        },
-                        onToggleSave: () {
-                          if (!_isLoggedIn) {
-                            _promptLogin();
-                            return;
-                          }
-                          setState(() => _isSaved = !_isSaved);
-                        },
-                        onOpenFacility: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => FacilityDetailScreen(
-                                facility: post.facility,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  );
-                },
-              );
-            }
-            return const Center(
-              child: Text(
-                '아직 게시글이 없어요',
-                style: TextStyle(fontSize: 15, color: Color(0xFF7A838A)),
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: EdgeInsets.fromLTRB(0, 16, 0, bottomInset),
-            itemCount: posts.length,
-            separatorBuilder: (_, index) => const SizedBox(height: 16),
-            itemBuilder: (context, index) {
-              final post = posts[index];
-              return Column(
-                children: [
-                  PostCard(post: post),
-                  const SizedBox(height: 10),
-                  PostActionsRow(
-                    post: post,
-                    onRequireLogin: _promptLogin,
-                    onOpenFacility: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => FacilityDetailScreen(
-                            facility: post.facility,
-                          ),
-                        ),
+            builder: (context, hiddenKeys, child) {
+              return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: _buildQuery().snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    if (_lastGoodPosts.isNotEmpty) {
+                      return _buildPostList(
+                        context: context,
+                        posts: _lastGoodPosts,
+                        bottomInset: bottomInset,
                       );
-                    },
-                  ),
-                ],
+                    }
+                    return const Center(
+                      child: Text(
+                        '피드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF7A838A),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final docs = snapshot.data?.docs ?? const [];
+                  final filteredDocs =
+                      docs
+                          .where(
+                            (doc) => _isVisibleForCurrentFilter(doc.data()),
+                          )
+                          .where((doc) {
+                            final data = doc.data();
+                            final postId =
+                                ((data['id'] as String?)?.trim().isNotEmpty ??
+                                    false)
+                                ? (data['id'] as String).trim()
+                                : doc.id;
+                            if (hiddenIds.contains(postId)) return false;
+                            final createdAtMillis = _createdAtMillis(data);
+                            final signature = PostVisibilityRegistry.keyFromRaw(
+                              authorUid: (data['authorUid'] as String?) ?? '',
+                              title: (data['title'] as String?) ?? '',
+                              location: (data['location'] as String?) ?? '',
+                              content: (data['content'] as String?) ?? '',
+                              createdAtMillis: createdAtMillis,
+                            );
+                            return !hiddenKeys.contains(signature);
+                          })
+                          .toList()
+                        ..sort(
+                          (a, b) => _createdAtMillis(
+                            b.data(),
+                          ).compareTo(_createdAtMillis(a.data())),
+                        );
+
+                  final posts = filteredDocs
+                      .map((doc) => _postFromDoc(doc.id, doc.data()))
+                      .where(
+                        (post) =>
+                            filter != '내 친구' ||
+                            _friendNames.contains(post.userName),
+                      )
+                      .toList();
+
+                  if (posts.isNotEmpty) {
+                    _lastGoodPosts = posts;
+                  }
+
+                  if (posts.isEmpty) {
+                    if (_lastGoodPosts.isNotEmpty) {
+                      return _buildPostList(
+                        context: context,
+                        posts: _lastGoodPosts,
+                        bottomInset: bottomInset,
+                      );
+                    }
+                    return const Center(
+                      child: Text(
+                        '아직 게시글이 없어요',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF7A838A),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return _buildPostList(
+                    context: context,
+                    posts: posts,
+                    bottomInset: bottomInset,
+                  );
+                },
               );
-            },
-          );
-            },
-          );
             },
           );
         },
       ),
+    );
+  }
+
+  Widget _buildPostList({
+    required BuildContext context,
+    required List<Post> posts,
+    required double bottomInset,
+  }) {
+    return ListView.separated(
+      padding: EdgeInsets.fromLTRB(0, 16, 0, bottomInset),
+      itemCount: posts.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        final post = posts[index];
+        return Column(
+          children: [
+            PostCard(post: post),
+            const SizedBox(height: 10),
+            PostActionsRow(
+              post: post,
+              onRequireLogin: _promptLogin,
+              onOpenFacility: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        FacilityDetailScreen(facility: post.facility),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

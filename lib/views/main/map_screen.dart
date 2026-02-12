@@ -198,9 +198,9 @@ class _MapScreenState extends State<MapScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _togglePlacePopup(MapPlace place) {
@@ -210,15 +210,6 @@ class _MapScreenState extends State<MapScreen> {
       } else {
         _selectedPlace = place;
       }
-    });
-  }
-
-  void _clearPlacePopup() {
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _selectedPlace = null;
     });
   }
 
@@ -306,7 +297,7 @@ class _MapScreenState extends State<MapScreen> {
     final items = matches.isNotEmpty
         ? matches
         : (List<ListItem>.from(mockListItems)
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
 
     return items.take(_maxPopupNotices).map((item) {
       final parts = item.subtitle.split('·');
@@ -321,8 +312,8 @@ class _MapScreenState extends State<MapScreen> {
       final badgeLabel = daysAgo <= 1
           ? '신규'
           : item.popularity >= 85
-              ? '인기'
-              : '모집 중';
+          ? '인기'
+          : '모집 중';
 
       return _MapPlaceNotice(
         title: item.title,
@@ -343,9 +334,8 @@ class _MapScreenState extends State<MapScreen> {
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _postsStream,
         builder: (context, snapshot) {
-          final postDocs = snapshot.data?.docs
-                  .map((doc) => doc.data())
-                  .toList() ??
+          final postDocs =
+              snapshot.data?.docs.map((doc) => doc.data()).toList() ??
               const <Map<String, dynamic>>[];
 
           return Stack(
@@ -365,12 +355,12 @@ class _MapScreenState extends State<MapScreen> {
                         zoomGesturesEnabled: true,
                         rotateGesturesEnabled: true,
                         pitchGesturesEnabled: true,
-                        gestureRecognizers: <
-                            Factory<OneSequenceGestureRecognizer>>{
-                          Factory<OneSequenceGestureRecognizer>(
-                            EagerGestureRecognizer.new,
-                          ),
-                        },
+                        gestureRecognizers:
+                            <Factory<OneSequenceGestureRecognizer>>{
+                              Factory<OneSequenceGestureRecognizer>(
+                                EagerGestureRecognizer.new,
+                              ),
+                            },
                         mapType: MapType.standard,
                         annotations: _annotations,
                       )
@@ -388,9 +378,7 @@ class _MapScreenState extends State<MapScreen> {
                       ),
               ),
               const _TopSearchBar(),
-              _MapRightControls(
-                onLocationTap: _moveToMyLocation,
-              ),
+              _MapRightControls(onLocationTap: _moveToMyLocation),
               if (_selectedPlace != null)
                 Builder(
                   builder: (context) {
@@ -887,9 +875,7 @@ class _TopSearchBar extends StatelessWidget {
 }
 
 class _MapRightControls extends StatelessWidget {
-  const _MapRightControls({
-    required this.onLocationTap,
-  });
+  const _MapRightControls({required this.onLocationTap});
 
   final Future<void> Function() onLocationTap;
 

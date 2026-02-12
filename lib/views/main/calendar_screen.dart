@@ -26,7 +26,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<JournalEntry> _entries = const [];
   int? _selectedDay;
   final Set<String> _likedEntryIds = <String>{};
-  final UserProfileLocalService _profileService = const UserProfileLocalService();
+  final UserProfileLocalService _profileService =
+      const UserProfileLocalService();
   String _displayName = '이름 없음';
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? 'local_user';
@@ -59,9 +60,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _openWriteFlow() async {
-    final saved = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => const EmotionSelectScreen()));
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const EmotionSelectScreen()),
+    );
     if (saved == true) {
       await _loadProfile();
       await _loadEntries();
@@ -326,31 +327,35 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
-                            Navigator.of(context).push<_PostDetailResult>(
-                              MaterialPageRoute(
-                                builder: (_) => _PostDetailScreen(
-                                  entry: visibleEntries[i],
-                                  isLiked: _likedEntryIds.contains(
-                                    visibleEntries[i].id,
+                            Navigator.of(context)
+                                .push<_PostDetailResult>(
+                                  MaterialPageRoute(
+                                    builder: (_) => _PostDetailScreen(
+                                      entry: visibleEntries[i],
+                                      isLiked: _likedEntryIds.contains(
+                                        visibleEntries[i].id,
+                                      ),
+                                      displayLikeCount:
+                                          visibleEntries[i].likeCount +
+                                          (_likedEntryIds.contains(
+                                                visibleEntries[i].id,
+                                              )
+                                              ? 1
+                                              : 0),
+                                    ),
                                   ),
-                                  displayLikeCount:
-                                      visibleEntries[i].likeCount +
-                                    (_likedEntryIds.contains(
-                                            visibleEntries[i].id,
-                                          )
-                                          ? 1
-                                          : 0),
-                                ),
-                              ),
-                            ).then((result) async {
-                              if (result == null) return;
-                              await _loadProfile();
-                              await _loadEntries();
-                            });
+                                )
+                                .then((result) async {
+                                  if (result == null) return;
+                                  await _loadProfile();
+                                  await _loadEntries();
+                                });
                           },
                           child: _DiaryPreviewCard(
                             entry: visibleEntries[i],
-                            isLiked: _likedEntryIds.contains(visibleEntries[i].id),
+                            isLiked: _likedEntryIds.contains(
+                              visibleEntries[i].id,
+                            ),
                             displayLikeCount:
                                 visibleEntries[i].likeCount +
                                 (_likedEntryIds.contains(visibleEntries[i].id)
@@ -383,7 +388,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onTap: _openWriteFlow,
               child: Container(
                 constraints: BoxConstraints(minHeight: f.y(43)),
-                padding: EdgeInsets.symmetric(horizontal: f.x(10), vertical: f.y(9)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: f.x(10),
+                  vertical: f.y(9),
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFACD7E6),
                   borderRadius: BorderRadius.circular(f.x(20)),
@@ -391,11 +399,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.add_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.add_rounded, size: 16, color: Colors.white),
                     SizedBox(width: 3),
                     Text(
                       '글쓰기',
@@ -432,11 +436,7 @@ class _DiaryPreviewCard extends StatelessWidget {
   final int displayLikeCount;
   final VoidCallback onTapLike;
 
-  static const _scopeLabel = {
-    '비공개': '비공개',
-    '친구공개': '친구공개',
-    '전체공개': '전체공개',
-  };
+  static const _scopeLabel = {'비공개': '비공개', '친구공개': '친구공개', '전체공개': '전체공개'};
 
   @override
   Widget build(BuildContext context) {
@@ -546,7 +546,8 @@ class _DiaryPreviewCard extends StatelessWidget {
                             width: thumbSize,
                             height: thumbSize,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const SizedBox.shrink(),
                           ),
                         ),
                       ),
@@ -626,7 +627,7 @@ class _EmotionBadge extends StatelessWidget {
       'assets/images/emotion_proud.png',
       'assets/images/emotion_happy.png',
     ];
-    final safe = index.clamp(0, 4) as int;
+    final safe = index.clamp(0, 4);
     return Container(
       width: 35,
       height: 35,
@@ -641,10 +642,7 @@ class _EmotionBadge extends StatelessWidget {
         child: FittedBox(
           fit: BoxFit.contain,
           alignment: Alignment.center,
-          child: Image.asset(
-            imagePaths[safe],
-            alignment: Alignment.center,
-          ),
+          child: Image.asset(imagePaths[safe], alignment: Alignment.center),
         ),
       ),
     );
@@ -662,13 +660,12 @@ class _PostDetailScreen extends StatelessWidget {
   final bool isLiked;
   final int displayLikeCount;
 
-  static const _scopeLabel = {
-    '비공개': '비공개',
-    '친구공개': '친구공개',
-    '전체공개': '전체공개',
-  };
+  static const _scopeLabel = {'비공개': '비공개', '친구공개': '친구공개', '전체공개': '전체공개'};
 
-  Future<void> _showMoreMenu(BuildContext context, BuildContext anchorContext) async {
+  Future<void> _showMoreMenu(
+    BuildContext context,
+    BuildContext anchorContext,
+  ) async {
     final overlayBox =
         Overlay.of(context).context.findRenderObject() as RenderBox;
     final buttonBox = anchorContext.findRenderObject() as RenderBox;
@@ -810,11 +807,7 @@ class _PostDetailScreen extends StatelessWidget {
         child: Row(
           children: [
             isLiked
-                ? const Icon(
-                    Icons.favorite,
-                    size: 16,
-                    color: Color(0xFFFF5A70),
-                  )
+                ? const Icon(Icons.favorite, size: 16, color: Color(0xFFFF5A70))
                 : const Image(
                     image: AssetImage('assets/images/love2.png'),
                     width: 16,
@@ -845,11 +838,7 @@ class _PostDetailScreen extends StatelessWidget {
               ),
             ),
             SizedBox(width: f.x(24)),
-            const Icon(
-              Icons.send_outlined,
-              size: 18,
-              color: Color(0xFF69747C),
-            ),
+            const Icon(Icons.send_outlined, size: 18, color: Color(0xFF69747C)),
             SizedBox(width: f.x(8)),
             const Text(
               '2',
@@ -901,7 +890,12 @@ class _PostDetailScreen extends StatelessWidget {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(f.x(24), f.y(28), f.x(24), f.y(24)),
+                padding: EdgeInsets.fromLTRB(
+                  f.x(24),
+                  f.y(28),
+                  f.x(24),
+                  f.y(24),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -927,148 +921,153 @@ class _PostDetailScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: f.x(15),
-                          backgroundColor: const Color(0xFFE8E8E8),
-                          backgroundImage: profileImage,
-                          child: profileImage == null
-                              ? Icon(
-                                  Icons.person_rounded,
-                                  size: f.x(16),
-                                  color: const Color(0xFF8D8D8D),
-                                )
-                              : null,
-                        ),
-                        SizedBox(width: f.x(10)),
-                        Expanded(
-                          child: Text(
-                            displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'Pretendard Variable',
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1F272D),
-                            ),
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: f.x(15),
+                                backgroundColor: const Color(0xFFE8E8E8),
+                                backgroundImage: profileImage,
+                                child: profileImage == null
+                                    ? Icon(
+                                        Icons.person_rounded,
+                                        size: f.x(16),
+                                        color: const Color(0xFF8D8D8D),
+                                      )
+                                    : null,
+                              ),
+                              SizedBox(width: f.x(10)),
+                              Expanded(
+                                child: Text(
+                                  displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: 'Pretendard Variable',
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1F272D),
+                                  ),
+                                ),
+                              ),
+                              Builder(
+                                builder: (anchorContext) => GestureDetector(
+                                  onTap: () =>
+                                      _showMoreMenu(context, anchorContext),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: const Image(
+                                    image: AssetImage('assets/images/점3.png'),
+                                    width: 20,
+                                    height: 20,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        Builder(
-                          builder: (anchorContext) => GestureDetector(
-                            onTap: () => _showMoreMenu(context, anchorContext),
-                            behavior: HitTestBehavior.opaque,
-                            child: const Image(
-                              image: AssetImage('assets/images/점3.png'),
-                              width: 20,
-                              height: 20,
-                              fit: BoxFit.contain,
-                            ),
+                          SizedBox(height: f.y(16)),
+                          SizedBox(height: f.y(12)),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  entry.title,
+                                  style: const TextStyle(
+                                    fontFamily: 'Pretendard Variable',
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.0,
+                                    color: Color(0xFF2B3137),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: f.x(8)),
+                              Container(
+                                width: 52,
+                                height: 52,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: _emotionFillColor(entry.emotionIndex),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Image.asset(
+                                  _emotionImagePath(entry.emotionIndex),
+                                  width: 28,
+                                  height: 28,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: f.y(16)),
-                    SizedBox(height: f.y(12)),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            entry.title,
-                            style: const TextStyle(
-                              fontFamily: 'Pretendard Variable',
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                              height: 1.0,
-                              color: Color(0xFF2B3137),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: f.x(8)),
-                        Container(
-                          width: 52,
-                          height: 52,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _emotionFillColor(entry.emotionIndex),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Image.asset(
-                            _emotionImagePath(entry.emotionIndex),
-                            width: 28,
-                            height: 28,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Transform.translate(
-                      offset: Offset(0, -f.y(20)),
-                      child: Text(
-                        '$dt · ${_scopeLabel[entry.scope] ?? '전체공개'}',
-                        style: const TextStyle(
-                          fontFamily: 'Pretendard Variable',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w300,
-                          color: Color(0xFFB1B3B9),
-                        ),
-                      ),
-                    ),
-                    if (entry.location.isNotEmpty) ...[
-                      SizedBox(height: f.y(8)),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.location_on_rounded,
-                            size: 18,
-                            color: Color(0xFFA9D8EA),
-                          ),
-                          SizedBox(width: f.x(4)),
-                          Expanded(
+                          Transform.translate(
+                            offset: Offset(0, -f.y(20)),
                             child: Text(
-                              entry.location,
+                              '$dt · ${_scopeLabel[entry.scope] ?? '전체공개'}',
                               style: const TextStyle(
                                 fontFamily: 'Pretendard Variable',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF7D878F),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w300,
+                                color: Color(0xFFB1B3B9),
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                    SizedBox(height: f.y(16)),
-                    Text(
-                      entry.content,
-                      style: const TextStyle(
-                        fontFamily: 'Pretendard Variable',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w400,
-                        height: 1.6,
-                        color: Color(0xFF2C343A),
-                      ),
-                    ),
-                    if (entry.imagePaths.isNotEmpty) ...[
-                      SizedBox(height: f.y(18)),
-                      for (var i = 0; i < entry.imagePaths.length; i++) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(f.x(4)),
-                          child: Image.file(
-                            File(entry.imagePaths[i]),
-                            width: double.infinity,
-                            height: f.y(280),
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const SizedBox.shrink(),
-                          ),
-                        ),
-                        if (i != entry.imagePaths.length - 1)
+                          if (entry.location.isNotEmpty) ...[
+                            SizedBox(height: f.y(8)),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  size: 18,
+                                  color: Color(0xFFA9D8EA),
+                                ),
+                                SizedBox(width: f.x(4)),
+                                Expanded(
+                                  child: Text(
+                                    entry.location,
+                                    style: const TextStyle(
+                                      fontFamily: 'Pretendard Variable',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w400,
+                                      color: Color(0xFF7D878F),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                           SizedBox(height: f.y(16)),
-                      ],
-                    ],
+                          Text(
+                            entry.content,
+                            style: const TextStyle(
+                              fontFamily: 'Pretendard Variable',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w400,
+                              height: 1.6,
+                              color: Color(0xFF2C343A),
+                            ),
+                          ),
+                          if (entry.imagePaths.isNotEmpty) ...[
+                            SizedBox(height: f.y(18)),
+                            for (
+                              var i = 0;
+                              i < entry.imagePaths.length;
+                              i++
+                            ) ...[
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(f.x(4)),
+                                child: Image.file(
+                                  File(entry.imagePaths[i]),
+                                  width: double.infinity,
+                                  height: f.y(280),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const SizedBox.shrink(),
+                                ),
+                              ),
+                              if (i != entry.imagePaths.length - 1)
+                                SizedBox(height: f.y(16)),
+                            ],
+                          ],
                         ],
                       ),
                     ),
@@ -1084,6 +1083,7 @@ class _PostDetailScreen extends StatelessWidget {
 }
 
 enum _PostMenuAction { edit, copyUrl, delete }
+
 enum _PostDetailResult { edited, deleted }
 
 class _PostMenuItemContent extends StatelessWidget {
@@ -1126,7 +1126,7 @@ String _emotionImagePath(int index) {
     'assets/images/emotion_proud.png',
     'assets/images/emotion_happy.png',
   ];
-  final safe = index.clamp(0, 4) as int;
+  final safe = index.clamp(0, 4);
   return imagePaths[safe];
 }
 
@@ -1138,7 +1138,7 @@ Color _emotionFillColor(int index) {
     Color(0xFFEEFFF0), // thumbs up
     Color(0xFFFFFAE7), // smile
   ];
-  final safe = index.clamp(0, 4) as int;
+  final safe = index.clamp(0, 4);
   return fillColors[safe];
 }
 
@@ -1300,13 +1300,13 @@ class _CalendarDayCell extends StatelessWidget {
               Positioned(
                 bottom: 5,
                 child: Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF8EC8DF),
-                  shape: BoxShape.circle,
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF8EC8DF),
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
               ),
           ],
         ),
@@ -1323,10 +1323,7 @@ class _CalendarArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final arrow = ColorFiltered(
-      colorFilter: const ColorFilter.mode(
-        Color(0xFF6D767D),
-        BlendMode.srcIn,
-      ),
+      colorFilter: const ColorFilter.mode(Color(0xFF6D767D), BlendMode.srcIn),
       child: const Image(
         image: AssetImage('assets/images/volunteer/b.png'),
         width: 8,
@@ -1336,11 +1333,7 @@ class _CalendarArrow extends StatelessWidget {
     );
 
     if (!isRight) return arrow;
-    return Transform(
-      alignment: Alignment.center,
-      transform: Matrix4.identity()..scale(-1.0, 1.0),
-      child: arrow,
-    );
+    return Transform.flip(flipX: true, child: arrow);
   }
 }
 
