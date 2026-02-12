@@ -20,6 +20,7 @@ class ImageBlock extends PostBlock {
 /// ---------- Post Model ----------
 
 class Post {
+  final String id;
   final String userName;
   final ImageProvider profileImage;
 
@@ -30,12 +31,13 @@ class Post {
   final Facility facility;
   final int likeCount;
   final int commentCount;
-  final int shareCount;
+  final int saveCount;
 
   final ImageProvider emojiImage;
   final List<PostBlock> blocks;
 
   const Post({
+    required this.id,
     required this.userName,
     required this.profileImage,
     required this.title,
@@ -44,7 +46,7 @@ class Post {
     required this.facility,
     required this.likeCount,
     required this.commentCount,
-    required this.shareCount,
+    required this.saveCount,
     required this.emojiImage,
     required this.blocks,
   });

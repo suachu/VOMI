@@ -20,11 +20,16 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   static const Set<String> _friendNames = {'미스터츄'};
-  static const Set<String> _publicScopes = {'전체공개', '전체'};
-  static const Set<String> _friendVisibleScopes = {'전체공개', '전체', '친구공개', '친구'};
+  static const Set<String> _publicScopes = {'전체공개', '전체 공개', '전체'};
+  static const Set<String> _friendVisibleScopes = {
+    '전체공개',
+    '전체 공개',
+    '전체',
+    '친구공개',
+    '친구 공개',
+    '친구',
+  };
   String filter = '전체';
-  bool _isLiked = false;
-  bool _isSaved = false;
 
   bool get _isLoggedIn => FirebaseAuth.instance.currentUser != null;
 
@@ -35,11 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Query<Map<String, dynamic>> _buildQuery() {
+    final effectiveFilter =
+        (!_isLoggedIn && filter == '내 친구') ? '전체' : filter;
+    final scopes = effectiveFilter == '내 친구'
+        ? _friendVisibleScopes.toList()
+        : _publicScopes.toList();
     return FirebaseFirestore.instance
         .collection('posts')
-        // Read recent posts first and apply visibility in app code to avoid
-        // requiring composite indexes for every scope filter variant.
-        .orderBy('createdAt', descending: true);
+        .where('scope', whereIn: scopes);
   }
 
   String _normalizeScope(dynamic rawScope) {
@@ -47,13 +55,27 @@ class _HomeScreenState extends State<HomeScreen> {
     return '$rawScope'.replaceAll(' ', '').trim();
   }
 
+  DateTime _parseCreatedAt(dynamic createdAtRaw) {
+    if (createdAtRaw is Timestamp) {
+      return createdAtRaw.toDate();
+    }
+    if (createdAtRaw is String) {
+      return DateTime.tryParse(createdAtRaw) ?? DateTime.fromMillisecondsSinceEpoch(0);
+    }
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
   bool _isVisibleForCurrentFilter(Map<String, dynamic> data) {
+    final effectiveFilter =
+        (!_isLoggedIn && filter == '내 친구') ? '전체' : filter;
     final scope = _normalizeScope(data['scope']);
-    if (filter == '내 친구') return _friendVisibleScopes.contains(scope);
+    if (effectiveFilter == '내 친구') {
+      return _friendVisibleScopes.contains(scope);
+    }
     return _publicScopes.contains(scope);
   }
 
-  Post _postFromDoc(Map<String, dynamic> data) {
+  Post _postFromDoc(String id, Map<String, dynamic> data) {
     final authorName =
         (data['authorName'] as String?)?.trim().isNotEmpty == true
             ? (data['authorName'] as String).trim()
@@ -63,12 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final content = (data['content'] as String?)?.trim() ?? '';
     final location = (data['location'] as String?)?.trim() ?? '';
     final createdAtRaw = data['createdAt'];
-    DateTime createdAt = DateTime.now();
-    if (createdAtRaw is Timestamp) {
-      createdAt = createdAtRaw.toDate();
-    } else if (createdAtRaw is String) {
-      createdAt = DateTime.tryParse(createdAtRaw) ?? DateTime.now();
-    }
+    final createdAt = _parseCreatedAt(createdAtRaw);
     final date =
         '${createdAt.year.toString().padLeft(4, '0')}.${createdAt.month.toString().padLeft(2, '0')}.${createdAt.day.toString().padLeft(2, '0')}';
 
@@ -93,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
     };
 
     return Post(
+      id: id,
       userName: authorName,
       profileImage: authorPhotoUrl.isNotEmpty
           ? NetworkImage(authorPhotoUrl)
@@ -107,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       likeCount: data['likeCount'] as int? ?? 0,
       commentCount: data['commentCount'] as int? ?? 0,
-      shareCount: 0,
+      saveCount: data['saveCount'] as int? ?? data['shareCount'] as int? ?? 0,
       emojiImage: AssetImage(emojiAsset),
       blocks: blocks.isNotEmpty ? blocks : [TextBlock('내용이 없습니다.')],
     );
@@ -139,6 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
         stream: _buildQuery().snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
+            debugPrint('Feed load error: ${snapshot.error}');
             return const Center(
               child: Text(
                 '피드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
@@ -151,10 +170,15 @@ class _HomeScreenState extends State<HomeScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final docs = snapshot.data?.docs ?? const [];
+          final docs = (snapshot.data?.docs ?? const [])
+              .toList()
+            ..sort(
+              (a, b) => _parseCreatedAt(b.data()['createdAt'])
+                  .compareTo(_parseCreatedAt(a.data()['createdAt'])),
+            );
           final posts = docs
               .where((doc) => _isVisibleForCurrentFilter(doc.data()))
-              .map((doc) => _postFromDoc(doc.data()))
+              .map((doc) => _postFromDoc(doc.id, doc.data()))
               .where(
                 (post) => filter != '내 친구' || _friendNames.contains(post.userName),
               )
@@ -181,22 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 10),
                   PostActionsRow(
                     post: post,
-                    isLiked: _isLiked,
-                    isSaved: _isSaved,
-                    onToggleLike: () {
-                      if (!_isLoggedIn) {
-                        _promptLogin();
-                        return;
-                      }
-                      setState(() => _isLiked = !_isLiked);
-                    },
-                    onToggleSave: () {
-                      if (!_isLoggedIn) {
-                        _promptLogin();
-                        return;
-                      }
-                      setState(() => _isSaved = !_isSaved);
-                    },
+                    onRequireLogin: _promptLogin,
                     onOpenFacility: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(

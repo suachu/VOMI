@@ -1,11 +1,15 @@
 import 'package:apple_maps_flutter/apple_maps_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:vomi/services/user_location_service.dart';
+import 'package:vomi/views/bottom_nav.dart';
+import 'package:vomi/views/main/list/list_mock_data.dart';
+import 'package:vomi/views/main/list_models.dart';
 import 'package:vomi/views/main/map_places.dart';
 
 class MapScreen extends StatefulWidget {
@@ -21,6 +25,10 @@ class _MapScreenState extends State<MapScreen> {
     zoom: 14.2,
   );
   static const double _myLocationZoom = 15.5;
+  static const int _maxPopupPosts = 2;
+  static const int _maxPopupNotices = 2;
+  static const Set<String> _publicScopes = {'전체공개', '전체'};
+  static const String _fallbackPostImage = 'assets/images/dog1.png';
 
   // Marker mapping from your images:
   // 31 = not visited, 32 = visited.
@@ -34,6 +42,13 @@ class _MapScreenState extends State<MapScreen> {
   bool _iconsLoadAttempted = false;
   final UserLocationService _locationService = const UserLocationService();
   List<MapPlace> _places = mapPlaces;
+  MapPlace? _selectedPlace;
+  late final Stream<QuerySnapshot<Map<String, dynamic>>> _postsStream =
+      FirebaseFirestore.instance
+          .collection('posts')
+          .orderBy('createdAt', descending: true)
+          .limit(50)
+          .snapshots();
 
   @override
   void initState() {
@@ -107,10 +122,8 @@ class _MapScreenState extends State<MapScreen> {
             annotationId: AnnotationId(place.id),
             position: LatLng(place.latitude, place.longitude),
             icon: place.visited ? visitedIcon : notVisitedIcon,
-            infoWindow: InfoWindow(
-              title: place.title,
-              snippet: place.visited ? '방문 완료' : '미방문',
-            ),
+            infoWindow: InfoWindow.noText,
+            onTap: () => _togglePlacePopup(place),
           ),
         )
         .toSet();
@@ -190,58 +203,640 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  void _togglePlacePopup(MapPlace place) {
+    setState(() {
+      if (_selectedPlace?.id == place.id) {
+        _selectedPlace = null;
+      } else {
+        _selectedPlace = place;
+      }
+    });
+  }
+
+  void _clearPlacePopup() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _selectedPlace = null;
+    });
+  }
+
+  String _formatDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year.$month.$day';
+  }
+
+  DateTime _parseCreatedAt(dynamic raw) {
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is String) return DateTime.tryParse(raw) ?? DateTime.now();
+    return DateTime.now();
+  }
+
+  String _normalizeScope(dynamic rawScope) {
+    if (rawScope == null) return '';
+    return '$rawScope'.replaceAll(' ', '').trim();
+  }
+
+  bool _matchesLocation(String location, String placeTitle) {
+    if (location.isEmpty || placeTitle.isEmpty) return false;
+    return location.contains(placeTitle) || placeTitle.contains(location);
+  }
+
+  String _emojiAssetForIndex(int index) {
+    return switch (index) {
+      0 => 'assets/images/love.png',
+      1 => 'assets/images/emotion_neutral.png',
+      2 => 'assets/images/sad.png',
+      3 => 'assets/images/emotion_proud.png',
+      4 => 'assets/images/emotion_happy.png',
+      _ => 'assets/images/smiling.png',
+    };
+  }
+
+  List<_MapPlacePost> _postsForPlace(
+    List<Map<String, dynamic>> docs,
+    MapPlace place,
+  ) {
+    final filtered = docs.where((data) {
+      final scope = _normalizeScope(data['scope']);
+      if (!_publicScopes.contains(scope)) return false;
+      final location = (data['location'] as String?)?.trim() ?? '';
+      return _matchesLocation(location, place.title);
+    }).toList();
+
+    return filtered.take(_maxPopupPosts).map((data) {
+      final title = (data['title'] as String?)?.trim().isNotEmpty == true
+          ? (data['title'] as String).trim()
+          : '제목 없음';
+      final excerpt = (data['content'] as String?)?.trim() ?? '';
+      final createdAt = _parseCreatedAt(data['createdAt']);
+      final scopeLabel = (data['scope'] as String?)?.trim().isNotEmpty == true
+          ? (data['scope'] as String).trim()
+          : '전체공개';
+      final imageUrls = (data['imageUrls'] as List?) ?? [];
+      final imageUrl = imageUrls.isNotEmpty ? '${imageUrls.first}' : null;
+      final emotionIndex = data['emotionIndex'] as int? ?? 0;
+
+      return _MapPlacePost(
+        title: title,
+        dateLabel: _formatDate(createdAt),
+        scopeLabel: scopeLabel,
+        excerpt: excerpt.isNotEmpty ? excerpt : '내용이 없습니다.',
+        image: imageUrl != null && imageUrl.isNotEmpty
+            ? NetworkImage(imageUrl)
+            : const AssetImage(_fallbackPostImage),
+        emojiAsset: _emojiAssetForIndex(emotionIndex),
+        likeCount: data['likeCount'] as int? ?? 0,
+        commentCount: data['commentCount'] as int? ?? 0,
+      );
+    }).toList();
+  }
+
+  List<_MapPlaceNotice> _noticesForPlace(MapPlace place) {
+    final keyword = place.title.trim().toLowerCase();
+    final matches = mockListItems.where((item) {
+      if (keyword.isEmpty) return false;
+      return item.title.toLowerCase().contains(keyword) ||
+          item.subtitle.toLowerCase().contains(keyword);
+    }).toList();
+
+    final items = matches.isNotEmpty
+        ? matches
+        : (List<ListItem>.from(mockListItems)
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
+
+    return items.take(_maxPopupNotices).map((item) {
+      final parts = item.subtitle.split('·');
+      final location = parts.isNotEmpty ? parts.first.trim() : item.subtitle;
+      final distanceLabel = parts.length > 1
+          ? parts[1].trim()
+          : '${item.distanceKm.toStringAsFixed(1)}km';
+      final organization = '거리 $distanceLabel · 인기 ${item.popularity}';
+      final createdAtLabel = _formatDate(item.createdAt);
+      final now = DateTime.now();
+      final daysAgo = now.difference(item.createdAt).inDays;
+      final badgeLabel = daysAgo <= 1
+          ? '신규'
+          : item.popularity >= 85
+              ? '인기'
+              : '모집 중';
+
+      return _MapPlaceNotice(
+        title: item.title,
+        location: location,
+        organization: organization,
+        periodLabel: '등록일 $createdAtLabel',
+        image: AssetImage(item.thumbnailAsset),
+        badgeLabel: badgeLabel,
+      );
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isIOS = defaultTargetPlatform == TargetPlatform.iOS;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: isIOS
-                ? AppleMap(
-                    initialCameraPosition: _initialPosition,
-                    onMapCreated: (AppleMapController controller) {
-                      _mapController = controller;
-                    },
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: false,
-                    trackingMode: _trackingMode,
-                    compassEnabled: false,
-                    scrollGesturesEnabled: true,
-                    zoomGesturesEnabled: true,
-                    rotateGesturesEnabled: true,
-                    pitchGesturesEnabled: true,
-                    gestureRecognizers: <
-                        Factory<OneSequenceGestureRecognizer>>{
-                      Factory<OneSequenceGestureRecognizer>(
-                        EagerGestureRecognizer.new,
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _postsStream,
+        builder: (context, snapshot) {
+          final postDocs = snapshot.data?.docs
+                  .map((doc) => doc.data())
+                  .toList() ??
+              const <Map<String, dynamic>>[];
+
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: isIOS
+                    ? AppleMap(
+                        initialCameraPosition: _initialPosition,
+                        onMapCreated: (AppleMapController controller) {
+                          _mapController = controller;
+                        },
+                        myLocationEnabled: true,
+                        myLocationButtonEnabled: false,
+                        trackingMode: _trackingMode,
+                        compassEnabled: false,
+                        scrollGesturesEnabled: true,
+                        zoomGesturesEnabled: true,
+                        rotateGesturesEnabled: true,
+                        pitchGesturesEnabled: true,
+                        gestureRecognizers: <
+                            Factory<OneSequenceGestureRecognizer>>{
+                          Factory<OneSequenceGestureRecognizer>(
+                            EagerGestureRecognizer.new,
+                          ),
+                        },
+                        mapType: MapType.standard,
+                        annotations: _annotations,
+                      )
+                    : Container(
+                        color: const Color(0xFFECE8DD),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'Apple Maps is available on iOS only.',
+                          style: TextStyle(
+                            color: Color(0xFF7C828A),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    },
-                    mapType: MapType.standard,
-                    annotations: _annotations,
-                  )
-                : Container(
-                    color: const Color(0xFFECE8DD),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Apple Maps is available on iOS only.',
-                      style: TextStyle(
-                        color: Color(0xFF7C828A),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+              ),
+              const _TopSearchBar(),
+              _MapRightControls(
+                onLocationTap: _moveToMyLocation,
+              ),
+              if (_selectedPlace != null)
+                Builder(
+                  builder: (context) {
+                    final posts = _postsForPlace(postDocs, _selectedPlace!);
+                    final notices = _noticesForPlace(_selectedPlace!);
+                    if (posts.isEmpty && notices.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return _MapPlacePopup(
+                      title: _selectedPlace!.title,
+                      posts: posts,
+                      notices: notices,
+                    );
+                  },
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _MapPlacePopup extends StatelessWidget {
+  const _MapPlacePopup({
+    required this.title,
+    required this.posts,
+    required this.notices,
+  });
+
+  final String title;
+  final List<_MapPlacePost> posts;
+  final List<_MapPlaceNotice> notices;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final maxHeight = MediaQuery.of(context).size.height * 0.62;
+    final bottomPadding = BottomNavBar.navH + bottomInset + 18;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: AnimatedSlide(
+        offset: const Offset(0, 0),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        child: AnimatedOpacity(
+          opacity: 1,
+          duration: const Duration(milliseconds: 200),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Container(
+                    constraints: BoxConstraints(maxHeight: maxHeight),
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(26),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF232A31),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          const _PopupSectionTitle(title: '사용자 후기'),
+                          const SizedBox(height: 10),
+                          if (posts.isNotEmpty) ...[
+                            ...posts.map(
+                              (post) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _MapPostCard(post: post),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                          if (notices.isNotEmpty) ...[
+                            const _PopupSectionTitle(title: '모집 공고'),
+                            const SizedBox(height: 10),
+                            ...notices.map(
+                              (notice) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _MapNoticeCard(notice: notice),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ),
+                  Positioned(
+                    bottom: -10,
+                    child: CustomPaint(
+                      painter: _PopupPointerPainter(),
+                      size: const Size(28, 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          const _TopSearchBar(),
-          _MapRightControls(
-            onLocationTap: _moveToMyLocation,
+        ),
+      ),
+    );
+  }
+}
+
+class _PopupSectionTitle extends StatelessWidget {
+  const _PopupSectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF3E4650),
+      ),
+    );
+  }
+}
+
+class _MapPostCard extends StatelessWidget {
+  const _MapPostCard({required this.post});
+
+  final _MapPlacePost post;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF1F2F4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        post.title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1F262C),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFF4D6),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Image.asset(
+                        post.emojiAsset,
+                        width: 16,
+                        height: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${post.dateLabel} · ${post.scopeLabel}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF98A0A7),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  post.excerpt,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.35,
+                    color: Color(0xFF4C545B),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.favorite_border,
+                      size: 16,
+                      color: Color(0xFFA7AFB6),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${post.likeCount}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFA7AFB6),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.mode_comment_outlined,
+                      size: 16,
+                      color: Color(0xFFA7AFB6),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${post.commentCount}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFA7AFB6),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image(
+              image: post.image,
+              width: 84,
+              height: 84,
+              fit: BoxFit.cover,
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+class _MapNoticeCard extends StatelessWidget {
+  const _MapNoticeCard({required this.notice});
+
+  final _MapPlaceNotice notice;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+            border: Border.all(color: const Color(0xFFF1F2F4)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image(
+                  image: notice.image,
+                  width: 86,
+                  height: 86,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      notice.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F262C),
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      notice.location,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF7E8790),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      notice.organization,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF7E8790),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      notice.periodLabel,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF7E8790),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          right: 14,
+          top: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE7F4FF),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              notice.badgeLabel,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E7AD4),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PopupPointerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white;
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..lineTo(size.width, 0)
+      ..close();
+    canvas.drawShadow(path, Colors.black.withValues(alpha: 0.12), 6, false);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _MapPlacePost {
+  const _MapPlacePost({
+    required this.title,
+    required this.dateLabel,
+    required this.scopeLabel,
+    required this.excerpt,
+    required this.image,
+    required this.emojiAsset,
+    required this.likeCount,
+    required this.commentCount,
+  });
+
+  final String title;
+  final String dateLabel;
+  final String scopeLabel;
+  final String excerpt;
+  final ImageProvider image;
+  final String emojiAsset;
+  final int likeCount;
+  final int commentCount;
+}
+
+class _MapPlaceNotice {
+  const _MapPlaceNotice({
+    required this.title,
+    required this.location,
+    required this.organization,
+    required this.periodLabel,
+    required this.image,
+    required this.badgeLabel,
+  });
+
+  final String title;
+  final String location;
+  final String organization;
+  final String periodLabel;
+  final ImageProvider image;
+  final String badgeLabel;
 }
 
 class _TopSearchBar extends StatelessWidget {

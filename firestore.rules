@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isPublicScope(scope) {
+      return scope in ['전체공개', '전체 공개', '전체'];
+    }
+
+    function isVisibleScope(scope) {
+      return scope in ['전체공개', '전체 공개', '전체', '친구공개', '친구 공개', '친구'];
+    }
+
+    function postDoc(postId) {
+      return get(/databases/$(database)/documents/posts/$(postId));
+    }
+
+    function isPostOwner(postId) {
+      return isSignedIn() && postDoc(postId).data.authorUid == request.auth.uid;
+    }
+
+    function canReadPost(postId) {
+      let scope = postDoc(postId).data.scope;
+      return isPublicScope(scope) ||
+          isPostOwner(postId) ||
+          (isSignedIn() && isVisibleScope(scope));
+    }
+
+    function intOrZero(data, field) {
+      return data[field] is int ? data[field] : 0;
+    }
+
+    function isCountUpdate() {
+      let changed = request.resource.data.diff(resource.data).changedKeys();
+      return isSignedIn() &&
+          changed.hasOnly(['likeCount', 'commentCount', 'saveCount']);
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /journal_entries/{entryId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /locations/{locationId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    match /posts/{postId} {
+      allow read: if isPublicScope(resource.data.scope) ||
+          (isSignedIn() &&
+            (isVisibleScope(resource.data.scope) ||
+             resource.data.authorUid == request.auth.uid));
+
+      allow create: if isSignedIn() &&
+          request.resource.data.authorUid == request.auth.uid &&
+          request.resource.data.scope in ['전체공개', '전체', '친구공개', '친구', '비공개'];
+
+      allow update: if isSignedIn() && (
+          (resource.data.authorUid == request.auth.uid &&
+            request.resource.data.authorUid == resource.data.authorUid) ||
+          isCountUpdate()
+        );
+
+      allow delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
+
+      match /likes/{uid} {
+        allow read: if canReadPost(postId);
+        allow create: if isOwner(uid) &&
+            request.resource.data.uid == request.auth.uid;
+        allow delete: if isOwner(uid);
+      }
+
+      match /saves/{uid} {
+        allow read: if canReadPost(postId);
+        allow create: if isOwner(uid) &&
+            request.resource.data.uid == request.auth.uid;
+        allow delete: if isOwner(uid);
+      }
+
+      match /comments/{commentId} {
+        allow read: if canReadPost(postId);
+        allow create: if isSignedIn() &&
+            request.resource.data.uid == request.auth.uid &&
+            request.resource.data.text is string;
+        allow delete: if isSignedIn() &&
+            resource.data.uid == request.auth.uid;
+      }
+    }
+  }
+}
