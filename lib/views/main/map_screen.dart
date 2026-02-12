@@ -1,9 +1,11 @@
 import 'package:apple_maps_flutter/apple_maps_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:vomi/services/user_location_service.dart';
 import 'package:vomi/views/main/map_places.dart';
 
 class MapScreen extends StatefulWidget {
@@ -30,10 +32,13 @@ class _MapScreenState extends State<MapScreen> {
   AppleMapController? _mapController;
   TrackingMode _trackingMode = TrackingMode.none;
   bool _iconsLoadAttempted = false;
+  final UserLocationService _locationService = const UserLocationService();
+  List<MapPlace> _places = mapPlaces;
 
   @override
   void initState() {
     super.initState();
+    _loadPlaces();
   }
 
   @override
@@ -72,6 +77,23 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  Future<void> _loadPlaces() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return;
+    }
+    try {
+      final places = await _locationService.loadMapPlaces(uid);
+      if (!mounted) return;
+      setState(() {
+        _places = places;
+      });
+    } catch (e, st) {
+      debugPrint('Failed to load locations: $e');
+      debugPrintStack(stackTrace: st);
+    }
+  }
+
   Set<Annotation> get _annotations {
     final BitmapDescriptor? visitedIcon = _visitedIcon;
     final BitmapDescriptor? notVisitedIcon = _notVisitedIcon;
@@ -79,7 +101,7 @@ class _MapScreenState extends State<MapScreen> {
       return <Annotation>{};
     }
 
-    return mapPlaces
+    return _places
         .map(
           (MapPlace place) => Annotation(
             annotationId: AnnotationId(place.id),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vomi/core/theme/colors.dart';
 import 'package:vomi/views/auth/pages/login_method_page.dart';
 import 'package:vomi/views/bottom_nav.dart';
@@ -18,6 +19,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  static const Set<String> _friendNames = {'미스터츄'};
+  static const Set<String> _publicScopes = {'전체공개', '전체'};
+  static const Set<String> _friendVisibleScopes = {'전체공개', '전체', '친구공개', '친구'};
   String filter = '전체';
   bool _isLiked = false;
   bool _isSaved = false;
@@ -30,107 +34,89 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Query<Map<String, dynamic>> _buildQuery() {
+    return FirebaseFirestore.instance
+        .collection('posts')
+        // Read recent posts first and apply visibility in app code to avoid
+        // requiring composite indexes for every scope filter variant.
+        .orderBy('createdAt', descending: true);
+  }
+
+  String _normalizeScope(dynamic rawScope) {
+    if (rawScope == null) return '';
+    return '$rawScope'.replaceAll(' ', '').trim();
+  }
+
+  bool _isVisibleForCurrentFilter(Map<String, dynamic> data) {
+    final scope = _normalizeScope(data['scope']);
+    if (filter == '내 친구') return _friendVisibleScopes.contains(scope);
+    return _publicScopes.contains(scope);
+  }
+
+  Post _postFromDoc(Map<String, dynamic> data) {
+    final authorName =
+        (data['authorName'] as String?)?.trim().isNotEmpty == true
+            ? (data['authorName'] as String).trim()
+            : '익명';
+    final authorPhotoUrl = (data['authorPhotoUrl'] as String?) ?? '';
+    final title = (data['title'] as String?)?.trim() ?? '';
+    final content = (data['content'] as String?)?.trim() ?? '';
+    final location = (data['location'] as String?)?.trim() ?? '';
+    final createdAtRaw = data['createdAt'];
+    DateTime createdAt = DateTime.now();
+    if (createdAtRaw is Timestamp) {
+      createdAt = createdAtRaw.toDate();
+    } else if (createdAtRaw is String) {
+      createdAt = DateTime.tryParse(createdAtRaw) ?? DateTime.now();
+    }
+    final date =
+        '${createdAt.year.toString().padLeft(4, '0')}.${createdAt.month.toString().padLeft(2, '0')}.${createdAt.day.toString().padLeft(2, '0')}';
+
+    final imageUrls = ((data['imageUrls'] as List?) ?? [])
+        .map((e) => '$e')
+        .where((url) => url.isNotEmpty)
+        .toList();
+
+    final blocks = <PostBlock>[
+      if (content.isNotEmpty) TextBlock(content),
+      ...imageUrls.map((url) => ImageBlock(NetworkImage(url))),
+    ];
+
+    final emotionIndex = data['emotionIndex'] as int? ?? 0;
+    final emojiAsset = switch (emotionIndex) {
+      0 => 'assets/images/love.png',
+      1 => 'assets/images/emotion_neutral.png',
+      2 => 'assets/images/sad.png',
+      3 => 'assets/images/emotion_proud.png',
+      4 => 'assets/images/emotion_happy.png',
+      _ => 'assets/images/smiling.png',
+    };
+
+    return Post(
+      userName: authorName,
+      profileImage: authorPhotoUrl.isNotEmpty
+          ? NetworkImage(authorPhotoUrl)
+          : const AssetImage('assets/images/V.png'),
+      title: title.isNotEmpty ? title : '제목 없음',
+      date: date,
+      location: location.isNotEmpty ? location : '위치 정보 없음',
+      facility: Facility(
+        name: location.isNotEmpty ? location : '봉사 장소',
+        address: location.isNotEmpty ? location : '주소 정보 없음',
+        description: content.isNotEmpty ? content : '설명 정보 없음',
+      ),
+      likeCount: data['likeCount'] as int? ?? 0,
+      commentCount: data['commentCount'] as int? ?? 0,
+      shareCount: 0,
+      emojiImage: AssetImage(emojiAsset),
+      blocks: blocks.isNotEmpty ? blocks : [TextBlock('내용이 없습니다.')],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double bottomInset =
         BottomNavBar.navH + MediaQuery.of(context).padding.bottom + 20;
-    final friendNames = <String>{'미스터츄'};
-
-    final postsAll = [
-      Post(
-        userName: "빵준",
-        profileImage: const AssetImage("assets/images/bread.JPG"),
-        title: "빵주니의 첫번째 유기견 봉사!!",
-        date: "2026.04.02",
-        location: "경기도 하남시 미사동로40번길 75-91, 하남시유기견보호소",
-        facility: const Facility(
-          name: "하남시유기견보호소",
-          address: "경기도 하남시 미사동로40번길 75-91",
-          description:
-              "유기견 보호와 입양 연계를 위한 시설입니다. "
-              "봉사자는 산책, 청소, 놀이 활동 등을 지원할 수 있어요.",
-          phone: "031-000-0000",
-          hours: "매일 10:00 - 18:00",
-        ),
-        likeCount: 26,
-        commentCount: 13,
-        shareCount: 1,
-        emojiImage: const AssetImage("assets/images/smiling.png"),
-        blocks: [
-          TextBlock("오늘 포항시 동물보호센터에 가서 자원봉사를 했다!"),
-          ImageBlock(const AssetImage('assets/images/dog1.png')),
-          ImageBlock(const AssetImage('assets/images/dog2.png')),
-          TextBlock(
-            "같이 산책도 하고, 옆에서 쓰다듬어 주면서 웃기도 했다. "
-            "사람을 너무 좋아해서 먼저 다가와 주고, 꼬리를 흔들며 따라오는 모습이 참 예뻤다. "
-            "그런데 이렇게 사람을 좋아하는 아이들이 왜 여기 있을까 생각하니 마음이 아파졌다.",
-          ),
-        ],
-      ),
-      Post(
-        userName: "빵준",
-        profileImage: const AssetImage("assets/images/bread.JPG"),
-        title: "빵주니의 첫번째 유기견 봉사!!",
-        date: "2026.04.02",
-        location: "경기도 하남시 미사동로40번길 75-91, 하남시유기견보호소",
-        facility: const Facility(
-          name: "하남시유기견보호소",
-          address: "경기도 하남시 미사동로40번길 75-91",
-          description:
-              "유기견 보호와 입양 연계를 위한 시설입니다. "
-              "봉사자는 산책, 청소, 놀이 활동 등을 지원할 수 있어요.",
-          phone: "031-000-0000",
-          hours: "매일 10:00 - 18:00",
-        ),
-        likeCount: 26,
-        commentCount: 13,
-        shareCount: 1,
-        emojiImage: const AssetImage("assets/images/smiling.png"),
-        blocks: [
-          TextBlock("오늘 포항시 동물보호센터에 가서 자원봉사를 했다!"),
-          ImageBlock(const AssetImage('assets/images/dog1.png')),
-          ImageBlock(const AssetImage('assets/images/dog2.png')),
-          TextBlock(
-            "같이 산책도 하고, 옆에서 쓰다듬어 주면서 웃기도 했다. "
-            "사람을 너무 좋아해서 먼저 다가와 주고, 꼬리를 흔들며 따라오는 모습이 참 예뻤다. "
-            "그런데 이렇게 사람을 좋아하는 아이들이 왜 여기 있을까 생각하니 마음이 아파졌다.",
-          ),
-        ],
-      ),
-      Post(
-        userName: "미스터츄",
-        profileImage: const AssetImage("assets/images/V.png"),
-        title: "빵주니의 첫번째 유기견 봉사!!",
-        date: "2026.04.02",
-        location: "경기도 하남시 미사동로40번길 75-91, 하남시유기견보호소",
-        facility: const Facility(
-          name: "하남시유기견보호소",
-          address: "경기도 하남시 미사동로40번길 75-91",
-          description:
-              "유기견 보호와 입양 연계를 위한 시설입니다. "
-              "봉사자는 산책, 청소, 놀이 활동 등을 지원할 수 있어요.",
-          phone: "031-000-0000",
-          hours: "매일 10:00 - 18:00",
-        ),
-        likeCount: 26,
-        commentCount: 13,
-        shareCount: 1,
-        emojiImage: const AssetImage("assets/images/smiling.png"),
-        blocks: [
-          TextBlock("오늘 포항시 동물보호센터에 가서 자원봉사를 했다!"),
-          ImageBlock(const AssetImage('assets/images/dog1.png')),
-          ImageBlock(const AssetImage('assets/images/dog2.png')),
-          TextBlock(
-            "같이 산책도 하고, 옆에서 쓰다듬어 주면서 웃기도 했다. "
-            "사람을 너무 좋아해서 먼저 다가와 주고, 꼬리를 흔들며 따라오는 모습이 참 예뻤다. "
-            "그런데 이렇게 사람을 좋아하는 아이들이 왜 여기 있을까 생각하니 마음이 아파졌다.",
-          ),
-        ],
-      ),
-    ];
-    final postsFriends =
-        postsAll.where((post) => friendNames.contains(post.userName)).toList();
-    final posts = filter == '내 친구' ? postsFriends : postsAll;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -149,45 +135,81 @@ class _HomeScreenState extends State<HomeScreen> {
         onMenuPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
         logoImage: const AssetImage('assets/images/vomi.png'),
       ),
-      body: ListView.separated(
-        padding: EdgeInsets.fromLTRB(0, 16, 0, bottomInset),
-        itemCount: posts.length,
-        separatorBuilder: (_, index) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final post = posts[index];
-          return Column(
-            children: [
-              PostCard(post: post),
-              const SizedBox(height: 10),
-              PostActionsRow(
-                post: post,
-                isLiked: _isLiked,
-                isSaved: _isSaved,
-                onToggleLike: () {
-                  if (!_isLoggedIn) {
-                    _promptLogin();
-                    return;
-                  }
-                  setState(() => _isLiked = !_isLiked);
-                },
-                onToggleSave: () {
-                  if (!_isLoggedIn) {
-                    _promptLogin();
-                    return;
-                  }
-                  setState(() => _isSaved = !_isSaved);
-                },
-                onOpenFacility: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => FacilityDetailScreen(
-                        facility: post.facility,
-                      ),
-                    ),
-                  );
-                },
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _buildQuery().snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(
+              child: Text(
+                '피드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+                style: TextStyle(fontSize: 15, color: Color(0xFF7A838A)),
               ),
-            ],
+            );
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final docs = snapshot.data?.docs ?? const [];
+          final posts = docs
+              .where((doc) => _isVisibleForCurrentFilter(doc.data()))
+              .map((doc) => _postFromDoc(doc.data()))
+              .where(
+                (post) => filter != '내 친구' || _friendNames.contains(post.userName),
+              )
+              .toList();
+
+          if (posts.isEmpty) {
+            return const Center(
+              child: Text(
+                '아직 게시글이 없어요',
+                style: TextStyle(fontSize: 15, color: Color(0xFF7A838A)),
+              ),
+            );
+          }
+
+          return ListView.separated(
+            padding: EdgeInsets.fromLTRB(0, 16, 0, bottomInset),
+            itemCount: posts.length,
+            separatorBuilder: (_, index) => const SizedBox(height: 16),
+            itemBuilder: (context, index) {
+              final post = posts[index];
+              return Column(
+                children: [
+                  PostCard(post: post),
+                  const SizedBox(height: 10),
+                  PostActionsRow(
+                    post: post,
+                    isLiked: _isLiked,
+                    isSaved: _isSaved,
+                    onToggleLike: () {
+                      if (!_isLoggedIn) {
+                        _promptLogin();
+                        return;
+                      }
+                      setState(() => _isLiked = !_isLiked);
+                    },
+                    onToggleSave: () {
+                      if (!_isLoggedIn) {
+                        _promptLogin();
+                        return;
+                      }
+                      setState(() => _isSaved = !_isSaved);
+                    },
+                    onOpenFacility: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => FacilityDetailScreen(
+                            facility: post.facility,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
           );
         },
       ),

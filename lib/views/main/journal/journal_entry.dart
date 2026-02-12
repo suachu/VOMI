@@ -8,6 +8,10 @@ class JournalEntry {
     required this.emotionIndex,
     required this.createdAt,
     required this.imagePaths,
+    this.imageUrls = const [],
+    this.authorUid = '',
+    this.authorName = '',
+    this.authorPhotoUrl = '',
     this.likeCount = 0,
     this.commentCount = 0,
   });
@@ -20,6 +24,10 @@ class JournalEntry {
   final int emotionIndex;
   final DateTime createdAt;
   final List<String> imagePaths;
+  final List<String> imageUrls;
+  final String authorUid;
+  final String authorName;
+  final String authorPhotoUrl;
   final int likeCount;
   final int commentCount;
 
@@ -33,6 +41,10 @@ class JournalEntry {
       'emotionIndex': emotionIndex,
       'createdAt': createdAt.toIso8601String(),
       'imagePaths': imagePaths,
+      'imageUrls': imageUrls,
+      'authorUid': authorUid,
+      'authorName': authorName,
+      'authorPhotoUrl': authorPhotoUrl,
       'likeCount': likeCount,
       'commentCount': commentCount,
     };
@@ -50,6 +62,10 @@ class JournalEntry {
           DateTime.now(),
       imagePaths:
           ((json['imagePaths'] as List?) ?? []).map((e) => '$e').toList(),
+      imageUrls: ((json['imageUrls'] as List?) ?? []).map((e) => '$e').toList(),
+      authorUid: json['authorUid'] as String? ?? '',
+      authorName: json['authorName'] as String? ?? '',
+      authorPhotoUrl: json['authorPhotoUrl'] as String? ?? '',
       likeCount: json['likeCount'] as int? ?? 0,
       commentCount: json['commentCount'] as int? ?? 0,
     );

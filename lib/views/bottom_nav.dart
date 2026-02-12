@@ -31,7 +31,7 @@ class BottomNavBar extends StatelessWidget {
   // ✅ 순서: 맵 → 목록 → 홈 → 기록 → 프로필
   // ✅ left/top은 "아이콘" 기준 좌표로 그대로 두고,
   //    터치영역(66x70) 안에서 아이콘을 중앙 정렬해서 표시
-  final List<_NavIconSpec> specs = const [
+  static const List<_NavIconSpec> _specs = [
     _NavIconSpec(
       offPath: 'assets/images/map_off.png',
       onPath: 'assets/images/map_on.png',
@@ -99,7 +99,7 @@ class BottomNavBar extends StatelessWidget {
                   borderRadius: BorderRadius.zero,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 14 * scale,
                       offset: Offset(0, 6 * scale),
                     ),
@@ -109,9 +109,9 @@ class BottomNavBar extends StatelessWidget {
                   clipBehavior: Clip.none,
                   children: [
                     // ✅ 파란 원: 선택된 아이콘 하나만 (아이콘보다 아래)
-                    if (selectedIndex >= 0)
+                    if (selectedIndex >= 0 && selectedIndex < _specs.length)
                       _BubbleOnly(
-                        spec: specs[selectedIndex],
+                        spec: _specs[selectedIndex],
                         bubble: bubble * scale,
                         bubbleColor: bubbleColor,
                         lift: lift * scale,
@@ -120,8 +120,8 @@ class BottomNavBar extends StatelessWidget {
                       ),
 
                     // ✅ 아이콘 5개: "66x70 터치영역" 적용
-                    ...List.generate(specs.length, (i) {
-                      final it = specs[i];
+                    ...List.generate(_specs.length, (i) {
+                      final it = _specs[i];
                       final bool selected = selectedIndex == i;
 
                       final double itLeft = it.left * scale;
@@ -169,7 +169,7 @@ class BottomNavBar extends StatelessWidget {
                     // 아이콘 좌표 오차가 있어도 탭 전환이 확실히 되게 한다.
                     Positioned.fill(
                       child: Row(
-                        children: List.generate(specs.length, (i) {
+                        children: List.generate(_specs.length, (i) {
                           return Expanded(
                             child: GestureDetector(
                               behavior: HitTestBehavior.translucent,

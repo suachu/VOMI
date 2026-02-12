@@ -12,6 +12,22 @@ class MapPlace {
   final double latitude;
   final double longitude;
   final bool visited;
+
+  MapPlace copyWith({
+    String? id,
+    String? title,
+    double? latitude,
+    double? longitude,
+    bool? visited,
+  }) {
+    return MapPlace(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      visited: visited ?? this.visited,
+    );
+  }
 }
 
 // Edit this list to control which places appear on the map.

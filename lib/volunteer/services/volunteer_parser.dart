@@ -138,8 +138,9 @@ VolunteerDetailMeta parseVolunteerDetailMeta(String xmlStr) {
     if (text == null || text.isEmpty) return null;
     if (text.contains('청소년') || text.contains('청년')) return '청소년';
     if (text.contains('성인')) return '성인';
-    if (text.contains('누구나') || text.contains('전연령') || text.contains('전체'))
+    if (text.contains('누구나') || text.contains('전연령') || text.contains('전체')) {
       return '전연령';
+    }
     return text;
   }
 

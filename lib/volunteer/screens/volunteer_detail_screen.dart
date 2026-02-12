@@ -86,19 +86,23 @@ class _VolunteerDetailScreenState extends State<VolunteerDetailScreen> {
   }
 
   String _compactAgeChip(String text) {
-    if (text.contains('청소년') || text.contains('청년') || text.contains('학생'))
+    if (text.contains('청소년') || text.contains('청년') || text.contains('학생')) {
       return '청소년';
-    if (text.contains('아동') || text.contains('어린이') || text.contains('유아'))
+    }
+    if (text.contains('아동') || text.contains('어린이') || text.contains('유아')) {
       return '아동';
-    if (text.contains('전연령') || text.contains('전체') || text.contains('누구나'))
+    }
+    if (text.contains('전연령') || text.contains('전체') || text.contains('누구나')) {
       return '전연령';
+    }
     return '성인';
   }
 
   String _inferCategoryFromText(String text) {
     final t = text.toLowerCase();
-    if (t.contains('환경') || t.contains('플로깅') || t.contains('쓰레기'))
+    if (t.contains('환경') || t.contains('플로깅') || t.contains('쓰레기')) {
       return '환경보호';
+    }
     if (t.contains('교육') || t.contains('멘토') || t.contains('학습')) return '교육';
     if (t.contains('동물') || t.contains('유기견') || t.contains('보호소')) return '동물';
     if (t.contains('행사') || t.contains('축제') || t.contains('공연')) return '문화행사';
@@ -114,8 +118,9 @@ class _VolunteerDetailScreenState extends State<VolunteerDetailScreen> {
         t.contains('말벗')) {
       return '생활편의';
     }
-    if (t.contains('환경') || t.contains('플로깅') || t.contains('정화'))
+    if (t.contains('환경') || t.contains('플로깅') || t.contains('정화')) {
       return '환경보호';
+    }
     if (t.contains('교육') || t.contains('학습') || t.contains('멘토')) return '교육';
     if (t.contains('문화') || t.contains('행사') || t.contains('축제')) return '문화행사';
     if (t.contains('동물') || t.contains('유기견') || t.contains('보호소')) return '동물';
@@ -134,8 +139,9 @@ class _VolunteerDetailScreenState extends State<VolunteerDetailScreen> {
   }
 
   String _compactModeChip(String text) {
-    if (text.contains('온라인') || text.contains('비대면') || text.contains('재택'))
+    if (text.contains('온라인') || text.contains('비대면') || text.contains('재택')) {
       return '온라인';
+    }
     return '오프라인';
   }
 
@@ -144,8 +150,9 @@ class _VolunteerDetailScreenState extends State<VolunteerDetailScreen> {
     if (t.contains('장애')) return '장애인';
     if (t.contains('아동') || t.contains('어린이') || t.contains('유아')) return '아동';
     if (t.contains('청소년') || t.contains('청년') || t.contains('학생')) return '청소년';
-    if (t.contains('노인') || t.contains('어르신') || t.contains('시니어'))
+    if (t.contains('노인') || t.contains('어르신') || t.contains('시니어')) {
       return '어르신';
+    }
     if (t.contains('다문화')) return '다문화가정';
     if (t.contains('독거')) return '독거가구';
     if (t.contains('환자')) return '환자';

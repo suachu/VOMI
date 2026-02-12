@@ -57,8 +57,6 @@ class PostCard extends StatelessWidget {
 
   const PostCard({super.key, required this.post});
 
-  static const double _imgW = 156;
-  static const double _imgH = 208;
   static const double _imgGap = 4;
 
   @override

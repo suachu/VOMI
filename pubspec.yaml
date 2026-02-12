@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   firebase_core: ^3.10.0
   firebase_auth: ^5.6.0
+  cloud_firestore: ^5.6.0
+  firebase_storage: ^12.4.0
   google_sign_in: ^6.3.0
   apple_maps_flutter: ^1.4.0
   geolocator: ^11.1.0

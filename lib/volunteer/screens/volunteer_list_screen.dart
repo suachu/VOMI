@@ -121,8 +121,9 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
       // 마감 정보 없는 항목은 뒤로
       if (ad == null && bd != null) return 1;
       if (ad != null && bd == null) return -1;
-      if (ad == null && bd == null)
+      if (ad == null && bd == null) {
         return _latestBaseDate(b).compareTo(_latestBaseDate(a));
+      }
 
       // 남은 일수 적은 순(임박 순)
       final cmp = ad!.compareTo(bd!);
@@ -243,8 +244,9 @@ class _VolunteerListScreenState extends State<VolunteerListScreen> {
   void _resetSearchToInitial() {
     if (!_isSearchFocused &&
         _keyword.isEmpty &&
-        _searchController.text.trim().isEmpty)
+        _searchController.text.trim().isEmpty) {
       return;
+    }
     _searchController.clear();
     _keyword = '';
     _searchFocusNode.unfocus();

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vomi/core/theme/colors.dart';
@@ -73,9 +74,18 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
 
   Future<void> _saveEntry() async {
     if (!_canSave) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'local_user';
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final uid = user.uid;
+    final entryId = DateTime.now().microsecondsSinceEpoch.toString();
+    final uploadedImageUrls = await _uploadImages(
+      uid: uid,
+      entryId: entryId,
+      files: _pickedImages,
+    );
+
     final entry = JournalEntry(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: entryId,
       title: _titleController.text.trim(),
       location: _locationController.text.trim(),
       content: _contentController.text.trim(),
@@ -83,10 +93,35 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
       emotionIndex: widget.selectedEmotionIndex,
       createdAt: DateTime.now(),
       imagePaths: _pickedImages.map((e) => e.path).toList(),
+      imageUrls: uploadedImageUrls,
+      authorUid: uid,
+      authorName: user.displayName?.trim().isNotEmpty == true
+          ? user.displayName!.trim()
+          : '익명',
+      authorPhotoUrl: user.photoURL ?? '',
     );
     await JournalStorage.addEntry(uid, entry);
     if (!mounted) return;
     Navigator.of(context).pop(true);
+  }
+
+  Future<List<String>> _uploadImages({
+    required String uid,
+    required String entryId,
+    required List<XFile> files,
+  }) async {
+    if (files.isEmpty) return const [];
+    final storage = FirebaseStorage.instance;
+    final urls = <String>[];
+    for (var i = 0; i < files.length; i++) {
+      final file = File(files[i].path);
+      final ref = storage.ref().child(
+        'users/$uid/journal_images/${entryId}_$i.jpg',
+      );
+      await ref.putFile(file);
+      urls.add(await ref.getDownloadURL());
+    }
+    return urls;
   }
 
   Widget _buildScopeChip(String text, IconData icon) {

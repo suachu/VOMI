@@ -22,56 +22,6 @@ class BottomNavBar extends StatelessWidget {
   static const double iconSize = 22;
   static const double bubble = 42;
 
-  Widget _iconButton({
-    required int idx,
-    required String asset,
-    required double left,
-    required double top,
-  }) {
-    final bool selected = currentIndex == idx;
-
-    // ✅ 5개 모두 선택되면 파란 원
-    final bool bubbleSelected = selected;
-
-    return Positioned(
-      left: left,
-      top: top,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onTap(idx),
-        child: SizedBox(
-          width: 60,
-          height: 60,
-          child: Center(
-            child: bubbleSelected
-                ? Container(
-                    width: bubble,
-                    height: bubble,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFACD7E6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Image.asset(
-                        asset,
-                        width: iconSize,
-                        height: iconSize,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  )
-                : Image.asset(
-                    asset,
-                    width: iconSize,
-                    height: iconSize,
-                    fit: BoxFit.contain,
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(

@@ -274,50 +274,42 @@ class _ProfileInfoRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.scale,
-    this.valueColor = const Color(0xFF2F3338),
-    this.onTap,
   });
 
   final String label;
   final String value;
   final double scale;
-  final Color valueColor;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 108 * scale,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Pretendard Variable',
-                fontSize: 14 * scale,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF5F666D),
-              ),
+    return Row(
+      children: [
+        SizedBox(
+          width: 108 * scale,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Pretendard Variable',
+              fontSize: 14 * scale,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF5F666D),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Pretendard Variable',
-                fontSize: 14 * scale,
-                fontWeight: FontWeight.w400,
-                color: valueColor,
-              ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: 'Pretendard Variable',
+              fontSize: 14 * scale,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF373B40),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

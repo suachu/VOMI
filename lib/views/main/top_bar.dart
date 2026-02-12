@@ -31,7 +31,7 @@ class _TopBarState extends State<TopBar> {
 
     final picked = await showDialog<String>(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.45),
+      barrierColor: Colors.black.withValues(alpha: 0.45),
       builder: (_) => _DropdownDialog(initial: widget.selectedLabel),
     );
 
@@ -197,7 +197,7 @@ class _NoRippleMenuItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: Colors.black.withOpacity(isSelected ? 1.0 : 0.75),
+              color: Colors.black.withValues(alpha: isSelected ? 1.0 : 0.75),
             ),
           ),
         ),

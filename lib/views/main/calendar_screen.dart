@@ -84,8 +84,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final displayName = (user?.displayName?.trim().isNotEmpty ?? false)
-        ? user!.displayName!.trim()
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Center(
+            child: Text(
+              '로그인이 필요해요',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final displayName = (user.displayName?.trim().isNotEmpty ?? false)
+        ? user.displayName!.trim()
         : '이름 없음';
     final visibleEntries = _visibleEntries;
 
@@ -198,10 +216,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     CircleAvatar(
                       radius: 30,
                       backgroundColor: const Color(0xFFE8E8E8),
-                      backgroundImage: user?.photoURL != null
-                          ? NetworkImage(user!.photoURL!)
+                      backgroundImage: user.photoURL != null
+                          ? NetworkImage(user.photoURL!)
                           : null,
-                      child: user?.photoURL == null
+                      child: user.photoURL == null
                           ? const Icon(
                               Icons.person_rounded,
                               size: 28,
@@ -527,7 +545,7 @@ class _EmotionBadge extends StatelessWidget {
       Color(0xFFE1F4E5),
       Color(0xFFFFF7D8),
     ];
-    final safe = index.clamp(0, 4) as int;
+    final safe = index.clamp(0, 4);
     return Container(
       width: 46,
       height: 46,

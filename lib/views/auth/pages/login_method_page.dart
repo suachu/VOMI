@@ -27,7 +27,7 @@ class _LoginMethodPageState extends State<LoginMethodPage> {
     );
   }
 
-  Future<void> _signInWithGoogle(BuildContext context) async {
+  Future<void> _signInWithGoogle() async {
     if (_isGoogleLoading) return;
     setState(() => _isGoogleLoading = true);
     try {
@@ -238,7 +238,7 @@ class _LoginMethodPageState extends State<LoginMethodPage> {
                 radius: 10,
                 onTap: _isGoogleLoading
                     ? null
-                    : () => _signInWithGoogle(context),
+                    : _signInWithGoogle,
               ),
             ),
             Positioned(
