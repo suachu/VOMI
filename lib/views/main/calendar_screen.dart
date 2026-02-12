@@ -2,12 +2,16 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:vomi/core/layout/figma_scale.dart';
 import 'package:vomi/core/theme/colors.dart';
+import 'package:vomi/services/post_visibility_registry.dart';
+import 'package:vomi/services/user_profile_local_service.dart';
 import 'package:vomi/views/bottom_nav.dart';
 import 'package:vomi/views/main/journal/emotion_select_screen.dart';
 import 'package:vomi/views/main/journal/journal_entry.dart';
+import 'package:vomi/views/main/journal/journal_write_screen.dart';
 import 'package:vomi/views/main/journal/journal_storage.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -22,6 +26,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<JournalEntry> _entries = const [];
   int? _selectedDay;
   final Set<String> _likedEntryIds = <String>{};
+  final UserProfileLocalService _profileService = const UserProfileLocalService();
+  String _displayName = '이름 없음';
 
   String get _uid => FirebaseAuth.instance.currentUser?.uid ?? 'local_user';
 
@@ -30,7 +36,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.initState();
     final now = DateTime.now();
     _displayedMonth = DateTime(now.year, now.month, 1);
+    _loadProfile();
     _loadEntries();
+  }
+
+  Future<void> _loadProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final profile = await _profileService.ensure(user);
+    if (!mounted) return;
+    setState(() {
+      _displayName = profile.name;
+    });
   }
 
   Future<void> _loadEntries() async {
@@ -46,6 +63,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       context,
     ).push<bool>(MaterialPageRoute(builder: (_) => const EmotionSelectScreen()));
     if (saved == true) {
+      await _loadProfile();
       await _loadEntries();
     }
   }
@@ -106,9 +124,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       );
     }
 
-    final displayName = (user.displayName?.trim().isNotEmpty ?? false)
-        ? user.displayName!.trim()
-        : '이름 없음';
+    final displayName = _displayName;
     final visibleEntries = _visibleEntries;
 
     return Scaffold(
@@ -310,7 +326,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
-                            Navigator.of(context).push(
+                            Navigator.of(context).push<_PostDetailResult>(
                               MaterialPageRoute(
                                 builder: (_) => _PostDetailScreen(
                                   entry: visibleEntries[i],
@@ -319,14 +335,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   ),
                                   displayLikeCount:
                                       visibleEntries[i].likeCount +
-                                      (_likedEntryIds.contains(
+                                    (_likedEntryIds.contains(
                                             visibleEntries[i].id,
                                           )
                                           ? 1
                                           : 0),
                                 ),
                               ),
-                            );
+                            ).then((result) async {
+                              if (result == null) return;
+                              await _loadProfile();
+                              await _loadEntries();
+                            });
                           },
                           child: _DiaryPreviewCard(
                             entry: visibleEntries[i],
@@ -648,6 +668,119 @@ class _PostDetailScreen extends StatelessWidget {
     '전체공개': '전체공개',
   };
 
+  Future<void> _showMoreMenu(BuildContext context, BuildContext anchorContext) async {
+    final overlayBox =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final buttonBox = anchorContext.findRenderObject() as RenderBox;
+    final buttonOffset = buttonBox.localToGlobal(
+      Offset.zero,
+      ancestor: overlayBox,
+    );
+    const menuWidth = 176.0;
+    final left = (buttonOffset.dx + buttonBox.size.width - menuWidth).clamp(
+      8.0,
+      overlayBox.size.width - menuWidth - 8.0,
+    );
+    final menuRect = Rect.fromLTWH(
+      left,
+      buttonOffset.dy + buttonBox.size.height + 6,
+      menuWidth,
+      0,
+    );
+
+    final action = await showMenu<_PostMenuAction>(
+      context: context,
+      color: const Color(0xFFF7F8F9),
+      elevation: 10,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      position: RelativeRect.fromRect(menuRect, Offset.zero & overlayBox.size),
+      items: const [
+        PopupMenuItem<_PostMenuAction>(
+          value: _PostMenuAction.edit,
+          child: _PostMenuItemContent(
+            label: '수정하기',
+            icon: Icons.edit_outlined,
+            color: Color(0xFF636E72),
+          ),
+        ),
+        PopupMenuItem<_PostMenuAction>(
+          value: _PostMenuAction.copyUrl,
+          child: _PostMenuItemContent(
+            label: 'URL 복사',
+            icon: Icons.link_rounded,
+            color: Color(0xFF636E72),
+          ),
+        ),
+        PopupMenuItem<_PostMenuAction>(
+          value: _PostMenuAction.delete,
+          child: _PostMenuItemContent(
+            label: '삭제하기',
+            icon: Icons.delete_outline_rounded,
+            color: Color(0xFFFF4646),
+          ),
+        ),
+      ],
+    );
+
+    if (!context.mounted || action == null) return;
+    switch (action) {
+      case _PostMenuAction.edit:
+        final saved = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => JournalWriteScreen(
+              selectedEmotionIndex: entry.emotionIndex,
+              initialEntry: entry,
+            ),
+          ),
+        );
+        if (!context.mounted) return;
+        if (saved == true) {
+          PostVisibilityRegistry.showEntry(entry);
+          Navigator.of(context).pop(_PostDetailResult.edited);
+        }
+        break;
+      case _PostMenuAction.copyUrl:
+        await Clipboard.setData(
+          ClipboardData(text: 'https://vomi.app/journal/${entry.id}'),
+        );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('URL을 복사했어요.')));
+        break;
+      case _PostMenuAction.delete:
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('삭제하기'),
+              content: const Text('이 게시글을 삭제할까요?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('취소'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text(
+                    '삭제',
+                    style: TextStyle(color: Color(0xFFFF4646)),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+        if (!context.mounted || confirmed != true) return;
+        final uid = FirebaseAuth.instance.currentUser?.uid ?? 'local_user';
+        await JournalStorage.deleteEntry(uid, entry);
+        PostVisibilityRegistry.hideEntry(entry);
+        if (!context.mounted) return;
+        Navigator.of(context).pop(_PostDetailResult.deleted);
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final f = FigmaScale.fromContext(context);
@@ -657,9 +790,11 @@ class _PostDetailScreen extends StatelessWidget {
         : BottomNavBar.navW;
     final navHeight = BottomNavBar.navH * (navWScaled / BottomNavBar.navW);
     final user = FirebaseAuth.instance.currentUser;
-    final displayName = (user?.displayName?.trim().isNotEmpty ?? false)
-        ? user!.displayName!.trim()
-        : '사용자';
+    final displayName = entry.authorName.trim().isNotEmpty
+        ? entry.authorName.trim()
+        : ((user?.displayName?.trim().isNotEmpty ?? false)
+              ? user!.displayName!.trim()
+              : '사용자');
     final ImageProvider? profileImage = user?.photoURL != null
         ? NetworkImage(user!.photoURL!)
         : null;
@@ -728,70 +863,70 @@ class _PostDetailScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(f.x(24), f.y(18), f.x(24), f.y(24)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: f.y(44),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 0,
-                      top: f.y(10),
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        behavior: HitTestBehavior.opaque,
-                        child: Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()..scale(-1.0, 1.0),
-                          child: const Image(
-                            image: AssetImage('assets/images/volunteer/b.png'),
-                            width: 20,
-                            height: 10,
-                          ),
-                        ),
+        child: Column(
+          children: [
+            SizedBox(
+              height: f.y(62),
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: f.x(24),
+                    top: f.y(26),
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      behavior: HitTestBehavior.opaque,
+                      child: const Image(
+                        image: AssetImage('assets/images/volunteer/b.png'),
+                        width: 20,
+                        height: 10,
                       ),
                     ),
-                    const Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        '게시글',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard Variable',
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF000000),
-                        ),
+                  ),
+                  const Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      '게시글',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard Variable',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        height: 1.0,
+                        letterSpacing: 0,
+                        color: Color(0xFF000000),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              SizedBox(height: f.y(28)),
-              Container(
-                width: f.x(354),
-                padding: EdgeInsets.fromLTRB(
-                  f.x(20),
-                  f.y(18),
-                  f.x(20),
-                  f.y(20),
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(f.x(20)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x1A000000),
-                      blurRadius: 8.02,
-                      offset: Offset(0, 4.01),
-                    ),
-                  ],
-                ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(f.x(24), f.y(28), f.x(24), f.y(24)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Container(
+                      width: f.x(354),
+                      padding: EdgeInsets.fromLTRB(
+                        f.x(20),
+                        f.y(18),
+                        f.x(20),
+                        f.y(20),
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(f.x(20)),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x1A000000),
+                            blurRadius: 8.02,
+                            offset: Offset(0, 4.01),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                     Row(
                       children: [
                         CircleAvatar(
@@ -820,14 +955,22 @@ class _PostDetailScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const Icon(
-                          Icons.more_vert_rounded,
-                          size: 22,
-                          color: Color(0xFF98A1A8),
+                        Builder(
+                          builder: (anchorContext) => GestureDetector(
+                            onTap: () => _showMoreMenu(context, anchorContext),
+                            behavior: HitTestBehavior.opaque,
+                            child: const Image(
+                              image: AssetImage('assets/images/점3.png'),
+                              width: 20,
+                              height: 20,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                     SizedBox(height: f.y(16)),
+                    SizedBox(height: f.y(12)),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -838,7 +981,7 @@ class _PostDetailScreen extends StatelessWidget {
                               fontFamily: 'Pretendard Variable',
                               fontSize: 24,
                               fontWeight: FontWeight.w600,
-                              height: 1.25,
+                              height: 1.0,
                               color: Color(0xFF2B3137),
                             ),
                           ),
@@ -860,14 +1003,16 @@ class _PostDetailScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    SizedBox(height: f.y(4)),
-                    Text(
-                      '$dt · ${_scopeLabel[entry.scope] ?? '전체공개'}',
-                      style: const TextStyle(
-                        fontFamily: 'Pretendard Variable',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w300,
-                        color: Color(0xFFB1B3B9),
+                    Transform.translate(
+                      offset: Offset(0, -f.y(20)),
+                      child: Text(
+                        '$dt · ${_scopeLabel[entry.scope] ?? '전체공개'}',
+                        style: const TextStyle(
+                          fontFamily: 'Pretendard Variable',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w300,
+                          color: Color(0xFFB1B3B9),
+                        ),
                       ),
                     ),
                     if (entry.location.isNotEmpty) ...[
@@ -924,13 +1069,51 @@ class _PostDetailScreen extends StatelessWidget {
                           SizedBox(height: f.y(16)),
                       ],
                     ],
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+enum _PostMenuAction { edit, copyUrl, delete }
+enum _PostDetailResult { edited, deleted }
+
+class _PostMenuItemContent extends StatelessWidget {
+  const _PostMenuItemContent({
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Pretendard Variable',
+              fontSize: 17,
+              fontWeight: FontWeight.w500,
+              color: color,
+            ),
+          ),
+        ),
+        Icon(icon, size: 22, color: color),
+      ],
     );
   }
 }

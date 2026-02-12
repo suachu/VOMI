@@ -5,27 +5,37 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vomi/core/theme/colors.dart';
+import 'package:vomi/services/user_profile_local_service.dart';
 import 'package:vomi/views/main/journal/journal_entry.dart';
 import 'package:vomi/views/main/journal/journal_storage.dart';
 
 class JournalWriteScreen extends StatefulWidget {
-  const JournalWriteScreen({super.key, required this.selectedEmotionIndex});
+  const JournalWriteScreen({
+    super.key,
+    required this.selectedEmotionIndex,
+    this.initialEntry,
+  });
 
   final int selectedEmotionIndex;
+  final JournalEntry? initialEntry;
 
   @override
   State<JournalWriteScreen> createState() => _JournalWriteScreenState();
 }
 
 class _JournalWriteScreenState extends State<JournalWriteScreen> {
+  final UserProfileLocalService _profileService = const UserProfileLocalService();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
 
+  late int _emotionIndex;
   bool _showScopePicker = false;
   String _scope = '전체공개';
   final List<XFile> _pickedImages = [];
+  final List<String> _existingImagePaths = [];
+  final List<String> _existingImageUrls = [];
 
   bool get _canSave =>
       _titleController.text.trim().isNotEmpty &&
@@ -34,6 +44,17 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
   @override
   void initState() {
     super.initState();
+    _emotionIndex = widget.selectedEmotionIndex;
+    final initial = widget.initialEntry;
+    if (initial != null) {
+      _titleController.text = initial.title;
+      _locationController.text = initial.location;
+      _contentController.text = initial.content;
+      _scope = initial.scope;
+      _emotionIndex = initial.emotionIndex;
+      _existingImagePaths.addAll(initial.imagePaths);
+      _existingImageUrls.addAll(initial.imageUrls);
+    }
     _titleController.addListener(_onInputChanged);
     _contentController.addListener(_onInputChanged);
   }
@@ -76,8 +97,12 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
     if (!_canSave) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    final profile = await _profileService.ensure(user);
     final uid = user.uid;
-    final entryId = DateTime.now().microsecondsSinceEpoch.toString();
+    final isEdit = widget.initialEntry != null;
+    final entryId = isEdit
+        ? widget.initialEntry!.id
+        : DateTime.now().microsecondsSinceEpoch.toString();
     final uploadedImageUrls = await _uploadImages(
       uid: uid,
       entryId: entryId,
@@ -90,17 +115,21 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
       location: _locationController.text.trim(),
       content: _contentController.text.trim(),
       scope: _scope,
-      emotionIndex: widget.selectedEmotionIndex,
-      createdAt: DateTime.now(),
-      imagePaths: _pickedImages.map((e) => e.path).toList(),
-      imageUrls: uploadedImageUrls,
+      emotionIndex: _emotionIndex,
+      createdAt: isEdit ? widget.initialEntry!.createdAt : DateTime.now(),
+      imagePaths: [..._existingImagePaths, ..._pickedImages.map((e) => e.path)],
+      imageUrls: [..._existingImageUrls, ...uploadedImageUrls],
       authorUid: uid,
-      authorName: user.displayName?.trim().isNotEmpty == true
-          ? user.displayName!.trim()
-          : '익명',
+      authorName: profile.name.trim().isNotEmpty ? profile.name.trim() : '익명',
       authorPhotoUrl: user.photoURL ?? '',
+      likeCount: widget.initialEntry?.likeCount ?? 0,
+      commentCount: widget.initialEntry?.commentCount ?? 0,
     );
-    await JournalStorage.addEntry(uid, entry);
+    if (isEdit) {
+      await JournalStorage.updateEntry(uid, entry);
+    } else {
+      await JournalStorage.addEntry(uid, entry);
+    }
     if (!mounted) return;
     Navigator.of(context).pop(true);
   }
@@ -169,108 +198,110 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, 10, 20, 24 + bottomInset),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: _showScopePicker ? 120 : 72,
-                  child: Stack(
-                    clipBehavior: Clip.none,
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              right: 0,
+              child: Container(
+                width: 402,
+                height: 106,
+                color: Colors.white,
+              ),
+            ),
+            Positioned(
+              left: 35,
+              top: 93,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                behavior: HitTestBehavior.opaque,
+                child: const Image(
+                  image: AssetImage('assets/images/volunteer/b.png'),
+                  width: 20,
+                  height: 10,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 62,
+              top: 81,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showScopePicker = !_showScopePicker;
+                  });
+                },
+                child: Text(
+                  '나의 일기 · $_scope ${_showScopePicker ? '▲' : '▼'}',
+                  style: const TextStyle(
+                    fontFamily: 'Pretendard Variable',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    height: 1.0,
+                    letterSpacing: 0,
+                    color: Color(0xFF000000),
+                  ),
+                ),
+              ),
+            ),
+            if (_showScopePicker)
+              Positioned(
+                left: 24,
+                right: 24,
+                top: 76,
+                child: Container(
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x26000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
                     children: [
-                      Positioned(
-                        left: 0,
-                        top: 16,
-                        child: GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          behavior: HitTestBehavior.opaque,
-                          child: const SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: _BackArrow(),
-                          ),
-                        ),
+                      _buildScopeChip('비공개', Icons.lock_outline_rounded),
+                      _buildScopeChip(
+                        '친구공개',
+                        Icons.group_outlined,
                       ),
-                      Positioned(
-                        top: 18,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _showScopePicker = !_showScopePicker;
-                              });
-                            },
-                            child: Text(
-                              '나의 일기 · $_scope ${_showScopePicker ? '▲' : '▼'}',
-                              style: const TextStyle(
-                                fontFamily: 'Pretendard Variable',
-                                fontSize: 19,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1F262C),
-                              ),
-                            ),
-                          ),
-                        ),
+                      _buildScopeChip(
+                        '전체공개',
+                        Icons.public_rounded,
                       ),
-                      if (_showScopePicker)
-                        Positioned(
-                          left: 24,
-                          right: 24,
-                          top: 58,
-                          child: Container(
-                            height: 56,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(28),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x26000000),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                _buildScopeChip('비공개', Icons.lock_outline_rounded),
-                                _buildScopeChip(
-                                  '친구공개',
-                                  Icons.group_outlined,
-                                ),
-                                _buildScopeChip(
-                                  '전체공개',
-                                  Icons.public_rounded,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(minHeight: 700),
-                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x14000000),
-                        blurRadius: 14,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
+              ),
+            Positioned(
+              left: 24,
+              top: 138,
+              child: Container(
+                width: 354,
+                height: 672,
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 14,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: 24 + bottomInset),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -488,30 +519,9 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BackArrow extends StatelessWidget {
-  const _BackArrow();
-
-  @override
-  Widget build(BuildContext context) {
-    return ColorFiltered(
-      colorFilter: const ColorFilter.mode(Color(0xFF20282E), BlendMode.srcIn),
-      child: Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scale(-1.0, 1.0),
-        child: const Image(
-          image: AssetImage('assets/images/volunteer/b.png'),
-          width: 20,
-          height: 10,
-          fit: BoxFit.contain,
+          ],
         ),
       ),
     );

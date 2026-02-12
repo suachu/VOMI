@@ -22,6 +22,100 @@ class JournalStorage {
     return FirebaseFirestore.instance.collection('posts');
   }
 
+  static Future<void> _deleteDuplicatePostDocsByEntryId(
+    String entryId, {
+    String? exceptDocId,
+  }) async {
+    final query = await _postsRef.where('id', isEqualTo: entryId).get();
+    final batch = FirebaseFirestore.instance.batch();
+    for (final doc in query.docs) {
+      if (exceptDocId != null && doc.id == exceptDocId) continue;
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
+  static bool _isSamePost(Map<String, dynamic> data, JournalEntry entry) {
+    final dataId = (data['id'] as String?) ?? '';
+    if (dataId == entry.id) return true;
+
+    final authorUid = (data['authorUid'] as String?) ?? '';
+    final title = (data['title'] as String?) ?? '';
+    final location = (data['location'] as String?) ?? '';
+    final content = (data['content'] as String?) ?? '';
+    return authorUid == entry.authorUid &&
+        title == entry.title &&
+        location == entry.location &&
+        content == entry.content;
+  }
+
+  static Future<void> _deleteRelatedPostDocs(
+    String uid,
+    JournalEntry entry, {
+    String? exceptDocId,
+  }) async {
+    final query = await _postsRef.where('authorUid', isEqualTo: uid).get();
+    final batch = FirebaseFirestore.instance.batch();
+    for (final doc in query.docs) {
+      if (exceptDocId != null && doc.id == exceptDocId) continue;
+      final data = Map<String, dynamic>.from(doc.data());
+      if (_isSamePost(data, entry)) {
+        batch.delete(doc.reference);
+      }
+    }
+    await batch.commit();
+  }
+
+  static String _entrySignature(JournalEntry entry) {
+    return '${entry.title}|${entry.location}|${entry.content}|${entry.createdAt.millisecondsSinceEpoch}';
+  }
+
+  static String _postSignature(Map<String, dynamic> data) {
+    final createdAt = data['createdAt'];
+    int createdAtMillis = 0;
+    if (createdAt is Timestamp) {
+      createdAtMillis = createdAt.millisecondsSinceEpoch;
+    } else if (createdAt is String) {
+      createdAtMillis = DateTime.tryParse(createdAt)?.millisecondsSinceEpoch ?? 0;
+    }
+    return '${(data['title'] as String?) ?? ''}|${(data['location'] as String?) ?? ''}|${(data['content'] as String?) ?? ''}|$createdAtMillis';
+  }
+
+  static Future<void> cleanupDanglingPostsForUser({
+    required String uid,
+    Set<String> legacyAuthorNames = const {},
+  }) async {
+    if (_isGuest(uid)) return;
+
+    final entries = await loadEntries(uid);
+    final entryIds = entries.map((e) => e.id).toSet();
+    final entrySignatures = entries.map(_entrySignature).toSet();
+
+    Future<void> cleanupQuery(Query<Map<String, dynamic>> query) async {
+      final snapshot = await query.get();
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in snapshot.docs) {
+        final data = Map<String, dynamic>.from(doc.data());
+        final postId = ((data['id'] as String?)?.trim().isNotEmpty ?? false)
+            ? (data['id'] as String).trim()
+            : doc.id;
+        final postSignature = _postSignature(data);
+        final keep = entryIds.contains(postId) || entrySignatures.contains(postSignature);
+        if (!keep) {
+          batch.delete(doc.reference);
+        }
+      }
+      await batch.commit();
+    }
+
+    await cleanupQuery(_postsRef.where('authorUid', isEqualTo: uid));
+    for (final name in legacyAuthorNames) {
+      final trimmed = name.trim();
+      if (trimmed.isEmpty) continue;
+      await cleanupQuery(_postsRef.where('authorName', isEqualTo: trimmed));
+    }
+  }
+
   static Future<List<JournalEntry>> loadEntries(String uid) async {
     if (!_isGuest(uid)) {
       final snapshot = await _entriesRef(uid)
@@ -78,6 +172,49 @@ class JournalStorage {
 
     final entries = await loadEntries(uid);
     entries.insert(0, entry);
+    await saveEntries(uid, entries);
+  }
+
+  static Future<void> updateEntry(String uid, JournalEntry entry) async {
+    if (!_isGuest(uid)) {
+      await _entriesRef(uid).doc(entry.id).set(_toFirestore(entry));
+      if (entry.scope != '비공개') {
+        await _postsRef.doc(entry.id).set(_toFirestore(entry));
+        await _deleteDuplicatePostDocsByEntryId(
+          entry.id,
+          exceptDocId: entry.id,
+        );
+        await _deleteRelatedPostDocs(
+          uid,
+          entry,
+          exceptDocId: entry.id,
+        );
+      } else {
+        await _postsRef.doc(entry.id).delete().catchError((_) {});
+        await _deleteDuplicatePostDocsByEntryId(entry.id);
+        await _deleteRelatedPostDocs(uid, entry);
+      }
+      return;
+    }
+
+    final entries = await loadEntries(uid);
+    final idx = entries.indexWhere((e) => e.id == entry.id);
+    if (idx == -1) return;
+    entries[idx] = entry;
+    await saveEntries(uid, entries);
+  }
+
+  static Future<void> deleteEntry(String uid, JournalEntry entry) async {
+    if (!_isGuest(uid)) {
+      await _entriesRef(uid).doc(entry.id).delete().catchError((_) {});
+      await _postsRef.doc(entry.id).delete().catchError((_) {});
+      await _deleteDuplicatePostDocsByEntryId(entry.id);
+      await _deleteRelatedPostDocs(uid, entry);
+      return;
+    }
+
+    final entries = await loadEntries(uid);
+    entries.removeWhere((e) => e.id == entry.id);
     await saveEntries(uid, entries);
   }
 

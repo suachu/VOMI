@@ -302,10 +302,7 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                                 ],
                               ),
                               const SizedBox(height: 2),
-                              _TotalTimeText(
-                                hoursText: summary?.totalHours.toString() ??
-                                    (isLoading ? '...' : '0'),
-                              ),
+                              const _TotalTimeText(hoursText: '128'),
                             ],
                           ),
                         ),
@@ -319,8 +316,7 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                             imagePath: 'assets/images/cal2.png',
                             imageWidth: 16,
                             imageHeight: 17.78,
-                            value: summary?.appliedCount.toString() ??
-                                (isLoading ? '...' : '0'),
+                            value: '3',
                             label: '신청한\n봉사',
                             onTap: () {
                               Navigator.of(context).push(
@@ -338,8 +334,7 @@ class _ProfileSummaryCardState extends State<_ProfileSummaryCard> {
                             imagePath: 'assets/images/check.png',
                             imageWidth: 16,
                             imageHeight: 16,
-                            value: summary?.completedCount.toString() ??
-                                (isLoading ? '...' : '0'),
+                            value: '28',
                             label: '참여 완료\n봉사',
                             onTap: () {
                               Navigator.of(context).push(

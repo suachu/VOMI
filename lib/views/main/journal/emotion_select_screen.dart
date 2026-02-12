@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:vomi/core/theme/colors.dart';
 import 'package:vomi/views/main/journal/journal_write_screen.dart';
@@ -11,28 +13,39 @@ class EmotionSelectScreen extends StatefulWidget {
 
 class _EmotionSelectScreenState extends State<EmotionSelectScreen> {
   int? _selected;
+  int? _activeEmotion;
   bool _navigating = false;
 
   static const _items = <_EmotionItem>[
     _EmotionItem(
       iconAssetPath: 'assets/images/love.png',
       fillColor: Color(0xFFFFE7D1),
+      iconWidth: 42,
+      iconHeight: 35.73,
     ),
     _EmotionItem(
       iconAssetPath: 'assets/images/emotion_neutral.png',
       fillColor: Color(0xFFE5FFFA),
+      iconWidth: 42,
+      iconHeight: 42,
     ),
     _EmotionItem(
       iconAssetPath: 'assets/images/sad.png',
       fillColor: Color(0xFFEFFEFF),
+      iconWidth: 42,
+      iconHeight: 42,
     ),
     _EmotionItem(
       iconAssetPath: 'assets/images/emotion_proud.png',
       fillColor: Color(0xFFEEFFF0),
+      iconWidth: 42,
+      iconHeight: 42.36,
     ),
     _EmotionItem(
       iconAssetPath: 'assets/images/emotion_happy.png',
       fillColor: Color(0xFFFFFAE7),
+      iconWidth: 42,
+      iconHeight: 42,
     ),
   ];
 
@@ -40,6 +53,7 @@ class _EmotionSelectScreenState extends State<EmotionSelectScreen> {
     if (_navigating) return;
     setState(() {
       _selected = index;
+      _activeEmotion = null;
       _navigating = true;
     });
     await Future<void>.delayed(const Duration(milliseconds: 450));
@@ -63,147 +77,123 @@ class _EmotionSelectScreenState extends State<EmotionSelectScreen> {
   @override
   Widget build(BuildContext context) {
     final darkened = _selected != null;
+    const frameW = 402.0;
+    const frameH = 874.0;
+    const centerSize = 120.0;
+    const bubbleSize = 80.0;
+    const centerX = frameW / 2;
+    const centerY = 430.0;
+    const radius = 155.0;
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      body: Center(
+        child: SizedBox(
+          width: frameW,
+          height: frameH,
+          child: Stack(
             children: [
-              const SizedBox(height: 58),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      behavior: HitTestBehavior.opaque,
-                      child: const SizedBox(
-                        width: 26,
-                        height: 26,
-                        child: _BackArrow(),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      '오늘의 일기',
-                      style: TextStyle(
-                        fontFamily: 'Pretendard Variable',
-                        fontSize: 44,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF273036),
-                      ),
-                    ),
-                  ],
+              Positioned(
+                left: 35,
+                top: 93,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  behavior: HitTestBehavior.opaque,
+                  child: const SizedBox(
+                    width: 20,
+                    height: 10,
+                    child: _BackArrow(),
+                  ),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(left: 68, top: 4),
+              const Positioned(
+                left: 62,
+                top: 81,
+                child: Text(
+                  '오늘의 일기',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard Variable',
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    height: 42 / 28,
+                    letterSpacing: 0,
+                    color: Color(0xFF2D3436),
+                  ),
+                ),
+              ),
+              const Positioned(
+                left: 63,
+                top: 123,
                 child: Text(
                   '오늘의 봉사활동, 어떤 감정이었나요?',
                   style: TextStyle(
                     fontFamily: 'Pretendard Variable',
-                    fontSize: 15,
+                    fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF6D767D),
+                    height: 24 / 16,
+                    letterSpacing: 0,
+                    color: Color(0xFF636E72),
                   ),
                 ),
               ),
-              const SizedBox(height: 64),
-              Expanded(
-                child: Stack(
-                  children: [
-                    const Positioned(
-                      top: 20,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: _EmotionBubble(
-                          item: _topItem,
-                          size: 98,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 188,
-                      left: 34,
-                      child: GestureDetector(
-                        onTap: () => _selectEmotion(1),
-                        child: _EmotionBubble(item: _items[1], size: 100),
-                      ),
-                    ),
-                    Positioned(
-                      top: 188,
-                      right: 34,
-                      child: GestureDetector(
-                        onTap: () => _selectEmotion(2),
-                        child: _EmotionBubble(item: _items[2], size: 100),
-                      ),
-                    ),
-                    Positioned(
-                      top: 392,
-                      left: 82,
-                      child: GestureDetector(
-                        onTap: () => _selectEmotion(3),
-                        child: _EmotionBubble(item: _items[3], size: 100),
-                      ),
-                    ),
-                    Positioned(
-                      top: 392,
-                      right: 82,
-                      child: GestureDetector(
-                        onTap: () => _selectEmotion(4),
-                        child: _EmotionBubble(item: _items[4], size: 100),
-                      ),
-                    ),
-                    const Positioned(
-                      top: 182,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: _CenterHintBubble(),
-                      ),
-                    ),
-                    Positioned(
-                      top: 20,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: GestureDetector(
-                          onTap: () => _selectEmotion(0),
-                          child: const _EmotionBubble(item: _topItem, size: 98),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              Positioned(
+                left: centerX - centerSize / 2,
+                top: centerY - centerSize / 2,
+                child: const _CenterHintBubble(),
               ),
+              for (var i = 0; i < _items.length; i++)
+                Positioned(
+                  left: centerX +
+                      radius * math.cos(-math.pi / 2 + i * (2 * math.pi / 5)) -
+                      bubbleSize / 2,
+                  top: centerY +
+                      radius * math.sin(-math.pi / 2 + i * (2 * math.pi / 5)) -
+                      bubbleSize / 2,
+                  child: MouseRegion(
+                    onEnter: (_) => setState(() => _activeEmotion = i),
+                    onExit: (_) => setState(() => _activeEmotion = null),
+                    child: GestureDetector(
+                      onTap: () => _selectEmotion(i),
+                      child: AnimatedScale(
+                        duration: const Duration(milliseconds: 140),
+                        curve: Curves.easeOutBack,
+                        scale: _activeEmotion == i ? 1.12 : 1.0,
+                        child: _EmotionBubble(item: _items[i], size: bubbleSize),
+                      ),
+                    ),
+                  ),
+                ),
+              if (darkened)
+                Positioned.fill(
+                  child: Container(color: const Color(0xA3000000)),
+                ),
+              if (_selected != null)
+                Positioned(
+                  left: centerX - centerSize / 2,
+                  top: centerY - centerSize / 2,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, t, child) {
+                      return Transform.scale(
+                        scale: 0.7 + (0.3 * t),
+                        child: Opacity(opacity: t, child: child),
+                      );
+                    },
+                    child: _EmotionBubble(
+                      item: _items[_selected!],
+                      size: centerSize,
+                      iconScale: 1.5,
+                    ),
+                  ),
+                ),
             ],
           ),
-          if (darkened)
-            Positioned.fill(
-              child: Container(color: const Color(0xA3000000)),
-            ),
-          if (_selected != null)
-            Positioned.fill(
-              child: Center(
-                child: _EmotionBubble(
-                  item: _items[_selected!],
-                  size: 150,
-                  iconScale: 0.58,
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
 }
-
-const _topItem = _EmotionItem(
-  iconAssetPath: 'assets/images/love.png',
-  fillColor: Color(0xFFFFE8D2),
-);
 
 class _BackArrow extends StatelessWidget {
   const _BackArrow();
@@ -212,15 +202,11 @@ class _BackArrow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ColorFiltered(
       colorFilter: const ColorFilter.mode(Color(0xFF20282E), BlendMode.srcIn),
-      child: Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scale(-1.0, 1.0),
-        child: const Image(
-          image: AssetImage('assets/images/volunteer/b.png'),
-          width: 20,
-          height: 10,
-          fit: BoxFit.contain,
-        ),
+      child: const Image(
+        image: AssetImage('assets/images/volunteer/b.png'),
+        width: 20,
+        height: 10,
+        fit: BoxFit.contain,
       ),
     );
   }
@@ -230,17 +216,21 @@ class _EmotionItem {
   const _EmotionItem({
     required this.iconAssetPath,
     required this.fillColor,
+    required this.iconWidth,
+    required this.iconHeight,
   });
 
   final String iconAssetPath;
   final Color fillColor;
+  final double iconWidth;
+  final double iconHeight;
 }
 
 class _EmotionBubble extends StatelessWidget {
   const _EmotionBubble({
     required this.item,
     required this.size,
-    this.iconScale = 0.52,
+    this.iconScale = 1.0,
   });
 
   final _EmotionItem item;
@@ -259,8 +249,8 @@ class _EmotionBubble extends StatelessWidget {
       child: Center(
         child: Image.asset(
           item.iconAssetPath,
-          width: size * iconScale,
-          height: size * iconScale,
+          width: item.iconWidth * iconScale,
+          height: item.iconHeight * iconScale,
           fit: BoxFit.contain,
         ),
       ),
@@ -274,10 +264,10 @@ class _CenterHintBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 150,
-      height: 150,
+      width: 120,
+      height: 120,
       decoration: const BoxDecoration(
-        color: Color(0xFFE6F0F4),
+        color: Color(0xFFF3FCFF),
         shape: BoxShape.circle,
       ),
     );
