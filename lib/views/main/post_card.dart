@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vomi/core/theme/colors.dart';
-import 'package:vomi/core/theme/text_styles.dart';
 import 'package:vomi/views/main/facility_models.dart';
 
 /// ---------- Post Blocks ----------
@@ -26,6 +24,7 @@ class Post {
 
   final String title;
   final String date;
+  final String scope;
   final String location;
 
   final Facility facility;
@@ -43,6 +42,7 @@ class Post {
     required this.profileImage,
     required this.title,
     required this.date,
+    required this.scope,
     required this.location,
     required this.facility,
     required this.likeCount,
@@ -58,10 +58,12 @@ class Post {
 
 class PostCard extends StatelessWidget {
   final Post post;
+  final bool isDetail;
 
-  const PostCard({super.key, required this.post});
+  const PostCard({super.key, required this.post, this.isDetail = false});
 
   static const double _imgGap = 4;
+  static const double _imgAspect = 156 / 208;
 
   @override
   Widget build(BuildContext context) {
@@ -69,12 +71,19 @@ class PostCard extends StatelessWidget {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 354, maxHeight: 632),
+        constraints: const BoxConstraints(maxWidth: 354),
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 8.02,
+                offset: Offset(0, 4.01),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -83,12 +92,14 @@ class PostCard extends StatelessWidget {
               _Header(post),
               const SizedBox(height: 16),
               _TitleRow(post),
-              const SizedBox(height: 5),
+              const SizedBox(height: 0),
+              _DateScopeRow(post),
+              const SizedBox(height: 0),
               _LocationRow(post.location),
-              const SizedBox(height: 16.5),
+              const SizedBox(height: 16),
 
               // ---------- Dynamic Content ----------
-              ..._buildContentWidgets(post.blocks, lastTextIndex),
+              ..._buildContentWidgets(post.blocks, lastTextIndex, isDetail),
             ],
           ),
         ),
@@ -96,7 +107,11 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildContentWidgets(List<PostBlock> blocks, int lastTextIndex) {
+  List<Widget> _buildContentWidgets(
+    List<PostBlock> blocks,
+    int lastTextIndex,
+    bool isDetail,
+  ) {
     final widgets = <Widget>[];
     final imageBuffer = <ImageProvider>[];
 
@@ -122,9 +137,19 @@ class PostCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _FixedImage(image: left),
+                  Expanded(
+                    child: AspectRatio(
+                      aspectRatio: _imgAspect,
+                      child: _FixedImage(image: left),
+                    ),
+                  ),
                   const SizedBox(width: _imgGap),
-                  _FixedImage(image: right),
+                  Expanded(
+                    child: AspectRatio(
+                      aspectRatio: _imgAspect,
+                      child: _FixedImage(image: right),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -153,10 +178,19 @@ class PostCard extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
               block.text,
-              style: AppTextStyles.body,
-              maxLines: isLastText ? 5 : null,
+              style: const TextStyle(
+                fontFamily: 'Pretendard Variable',
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+                height: 24.05 / 15,
+                color: Color(0xFF2C343A),
+                letterSpacing: 0,
+              ),
+              maxLines: (!isDetail && isLastText) ? 5 : null,
               overflow: isLastText
-                  ? TextOverflow.ellipsis
+                  ? ((!isDetail && isLastText)
+                        ? TextOverflow.ellipsis
+                        : TextOverflow.visible)
                   : TextOverflow.visible,
             ),
           ),
@@ -178,18 +212,11 @@ class _FixedImage extends StatelessWidget {
   final ImageProvider image;
   const _FixedImage({required this.image});
 
-  static const double _imgW = 156;
-  static const double _imgH = 208;
-
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       // borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: _imgW,
-        height: _imgH,
-        child: Image(image: image, fit: BoxFit.cover),
-      ),
+      child: SizedBox.expand(child: Image(image: image, fit: BoxFit.cover)),
     );
   }
 }
@@ -209,8 +236,8 @@ class _Header extends StatelessWidget {
     return Row(
       children: [
         CircleAvatar(
-          radius: 18,
-          backgroundColor: Colors.transparent,
+          radius: 15,
+          backgroundColor: const Color(0xFFE8E8E8),
           backgroundImage: isDefaultVAsset ? null : image,
           child: isDefaultVAsset
               ? ColorFiltered(
@@ -220,15 +247,29 @@ class _Header extends StatelessWidget {
                   ),
                   child: Image(
                     image: image,
-                    width: 36,
-                    height: 36,
+                    width: 30,
+                    height: 30,
                     fit: BoxFit.cover,
                   ),
                 )
               : null,
         ),
-        const SizedBox(width: 8),
-        Text(post.userName, style: AppTextStyles.username),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            post.userName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: 'Pretendard Variable',
+              fontSize: 14.03,
+              fontWeight: FontWeight.w600,
+              height: 1.0,
+              letterSpacing: 0,
+              color: Color(0xFF1F272D),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -256,51 +297,65 @@ class _TitleRow extends StatelessWidget {
     Color(0xFFFFFAE7),
   ];
 
-  static const _iconSizes = <(double width, double height)>[
-    (42, 35.73),
-    (42, 42),
-    (42, 42),
-    (42, 42.36),
-    (42, 42),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final safe = post.emotionIndex.clamp(0, 4);
-    final iconSize = _iconSizes[safe];
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(post.title, style: AppTextStyles.title),
-              const SizedBox(height: 2),
-              Text(post.date, style: AppTextStyles.date),
-            ],
+          child: Text(
+            post.title,
+            style: const TextStyle(
+              fontFamily: 'Pretendard Variable',
+              fontSize: 20.04,
+              fontWeight: FontWeight.w600,
+              height: 21.04 / 20.04,
+              letterSpacing: 0,
+              color: Color(0xFF2B3137),
+            ),
           ),
         ),
-        Transform.translate(
-          offset: const Offset(0, -10),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _emotionFillColors[safe],
-            ),
-            alignment: Alignment.center,
-            child: Image.asset(
-              _emotionImagePaths[safe],
-              width: iconSize.$1 * (18 / 42),
-              height: iconSize.$2 * (18 / 42),
-              fit: BoxFit.contain,
-            ),
+        const SizedBox(width: 8),
+        Container(
+          width: 52,
+          height: 52,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _emotionFillColors[safe],
+            shape: BoxShape.circle,
+          ),
+          child: Image.asset(
+            _emotionImagePaths[safe],
+            width: 28,
+            height: 28,
+            fit: BoxFit.contain,
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DateScopeRow extends StatelessWidget {
+  const _DateScopeRow(this.post);
+
+  final Post post;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.translate(
+      offset: const Offset(0, -10),
+      child: Text(
+        '${post.date} · ${post.scope}',
+        style: const TextStyle(
+          fontFamily: 'Pretendard Variable',
+          fontSize: 12,
+          fontWeight: FontWeight.w300,
+          color: Color(0xFFB1B3B9),
+        ),
+      ),
     );
   }
 }
@@ -314,17 +369,24 @@ class _LocationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(
-          Icons.location_on_rounded,
-          size: 16,
-          color: AppColors.tertiary,
+        const Image(
+          image: AssetImage('assets/images/location.png'),
+          width: 14,
+          height: 14,
+          fit: BoxFit.contain,
         ),
         const SizedBox(width: 4),
         Expanded(
           child: Text(
             location,
-            style: AppTextStyles.location,
+            style: const TextStyle(
+              fontFamily: 'Pretendard Variable',
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF7D878F),
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

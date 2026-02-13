@@ -270,7 +270,7 @@ class _JournalWriteScreenState extends State<JournalWriteScreen> {
                       ),
                       const SizedBox(width: 5),
                       AnimatedRotation(
-                        turns: _showScopePicker ? 0.5 : 0.0,
+                        turns: _showScopePicker ? 0.0 : 0.5,
                         duration: const Duration(milliseconds: 180),
                         child: const Image(
                           image: AssetImage('assets/images/tri.png'),

@@ -8,6 +8,7 @@ import 'package:vomi/views/auth/pages/login_method_page.dart';
 import 'package:vomi/views/bottom_nav.dart';
 import 'package:vomi/views/main/facility_detail_screen.dart';
 import 'package:vomi/views/main/facility_models.dart';
+import 'package:vomi/views/main/journal/emotion_select_screen.dart';
 import 'package:vomi/views/main/journal/journal_storage.dart';
 import 'package:vomi/views/main/post_actions.dart';
 import 'post_card.dart';
@@ -95,6 +96,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return '$rawScope'.replaceAll(' ', '').trim();
   }
 
+  String _scopeLabel(dynamic rawScope) {
+    final s = _normalizeScope(rawScope);
+    if (s.contains('비공개')) return '비공개';
+    if (s.contains('친구')) return '친구공개';
+    return '전체공개';
+  }
+
   DateTime _parseCreatedAt(dynamic createdAtRaw) {
     if (createdAtRaw is Timestamp) {
       return createdAtRaw.toDate();
@@ -162,6 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
           : const AssetImage('assets/images/V.png'),
       title: title.isNotEmpty ? title : '제목 없음',
       date: date,
+      scope: _scopeLabel(data['scope']),
       location: location.isNotEmpty ? location : '위치 정보 없음',
       facility: Facility(
         name: location.isNotEmpty ? location : '봉사 장소',
@@ -194,7 +203,13 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() => filter = v);
         },
         onAddPressed: () {
-          // TODO: create post
+          if (!_isLoggedIn) {
+            _promptLogin();
+            return;
+          }
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const EmotionSelectScreen()),
+          );
         },
         onMenuPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
         logoImage: const AssetImage('assets/images/vomi.png'),
@@ -321,7 +336,28 @@ class _HomeScreenState extends State<HomeScreen> {
         final post = posts[index];
         return Column(
           children: [
-            PostCard(post: post),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => _FeedPostDetailScreen(
+                      post: post,
+                      onRequireLogin: _promptLogin,
+                      onOpenFacility: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                FacilityDetailScreen(facility: post.facility),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
+              child: PostCard(post: post),
+            ),
             const SizedBox(height: 10),
             PostActionsRow(
               post: post,
@@ -338,6 +374,67 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         );
       },
+    );
+  }
+}
+
+class _FeedPostDetailScreen extends StatelessWidget {
+  const _FeedPostDetailScreen({
+    required this.post,
+    required this.onRequireLogin,
+    required this.onOpenFacility,
+  });
+
+  final Post post;
+  final Future<void> Function() onRequireLogin;
+  final VoidCallback onOpenFacility;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(
+              height: 62,
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 24,
+                    top: 26,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      behavior: HitTestBehavior.opaque,
+                      child: const Image(
+                        image: AssetImage('assets/images/volunteer/b.png'),
+                        width: 20,
+                        height: 10,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                child: Column(
+                  children: [
+                    PostCard(post: post, isDetail: true),
+                    const SizedBox(height: 10),
+                    PostActionsRow(
+                      post: post,
+                      onRequireLogin: onRequireLogin,
+                      onOpenFacility: onOpenFacility,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

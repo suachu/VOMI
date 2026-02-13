@@ -50,6 +50,7 @@ class PostActionsRow extends StatelessWidget {
               const SizedBox(width: 14),
               _ActionCount(
                 icon: Icons.mode_comment_outlined,
+                iconAsset: 'assets/images/chat.png',
                 count: commentCount,
                 onCountTap: () => _openSocialSheet(context, post, _SheetType.comment),
                 onIconTap: () => _openSocialSheet(context, post, _SheetType.comment),
@@ -63,15 +64,16 @@ class PostActionsRow extends StatelessWidget {
               ),
               const Spacer(),
               SizedBox(
-                height: 36,
+                height: 34,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.tertiary,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    fixedSize: const Size(138, 34),
+                    padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   onPressed: onOpenFacility,
@@ -96,6 +98,9 @@ class PostActionsRow extends StatelessWidget {
 class _ActionCount extends StatelessWidget {
   final IconData icon;
   final IconData? activeIcon;
+  final String? iconAsset;
+  final String? activeIconAsset;
+  final double iconSize;
   final bool isActive;
   final int count;
   final VoidCallback onCountTap;
@@ -104,6 +109,9 @@ class _ActionCount extends StatelessWidget {
   const _ActionCount({
     required this.icon,
     this.activeIcon,
+    this.iconAsset,
+    this.activeIconAsset,
+    this.iconSize = 18,
     this.isActive = false,
     required this.count,
     required this.onCountTap,
@@ -120,11 +128,7 @@ class _ActionCount extends StatelessWidget {
           onTap: onIconTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-            child: Icon(
-              isActive && activeIcon != null ? activeIcon : icon,
-              size: 18,
-              color: isActive ? activeColor : AppColors.textDark,
-            ),
+            child: _iconWidget(activeColor),
           ),
         ),
         GestureDetector(
@@ -135,6 +139,29 @@ class _ActionCount extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _iconWidget(Color activeColor) {
+    final assetPath = isActive ? (activeIconAsset ?? iconAsset) : iconAsset;
+    if (assetPath != null) {
+      return ColorFiltered(
+        colorFilter: const ColorFilter.mode(
+          Color(0xFF000000),
+          BlendMode.srcIn,
+        ),
+        child: Image.asset(
+          assetPath,
+          width: iconSize,
+          height: iconSize,
+          fit: BoxFit.contain,
+        ),
+      );
+    }
+    return Icon(
+      isActive && activeIcon != null ? activeIcon : icon,
+      size: iconSize,
+      color: isActive ? activeColor : AppColors.textDark,
     );
   }
 }
@@ -176,6 +203,9 @@ class _LikeAction extends StatelessWidget {
       return _ActionCount(
         icon: Icons.favorite_border,
         activeIcon: Icons.favorite,
+        iconAsset: 'assets/images/volunteer/heart.png',
+        activeIconAsset: 'assets/images/heart3.png',
+        iconSize: 22,
         isActive: false,
         count: count,
         onCountTap: () => _openSocialSheet(context, post, _SheetType.like),
@@ -191,6 +221,9 @@ class _LikeAction extends StatelessWidget {
         return _ActionCount(
           icon: Icons.favorite_border,
           activeIcon: Icons.favorite,
+          iconAsset: 'assets/images/volunteer/heart.png',
+          activeIconAsset: 'assets/images/heart3.png',
+          iconSize: 22,
           isActive: isLiked,
           count: count,
           onCountTap: () => _openSocialSheet(context, post, _SheetType.like),
@@ -228,6 +261,8 @@ class _SaveAction extends StatelessWidget {
       return _ActionCount(
         icon: Icons.bookmark_border,
         activeIcon: Icons.bookmark,
+        iconAsset: 'assets/images/AA.png',
+        activeIconAsset: 'assets/images/AA.png',
         isActive: false,
         count: count,
         onCountTap: () => _openSocialSheet(context, post, _SheetType.share),
@@ -243,6 +278,8 @@ class _SaveAction extends StatelessWidget {
         return _ActionCount(
           icon: Icons.bookmark_border,
           activeIcon: Icons.bookmark,
+          iconAsset: 'assets/images/AA.png',
+          activeIconAsset: 'assets/images/AA.png',
           isActive: isSaved,
           count: count,
           onCountTap: () => _openSocialSheet(context, post, _SheetType.share),

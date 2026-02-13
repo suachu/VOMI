@@ -926,29 +926,7 @@ class _VolunteerDetailScreenState extends State<VolunteerDetailScreen> {
         child: Stack(
           children: [
             Positioned(
-              left: 30,
-              top: 28,
-              width: 32,
-              height: 32,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('공유 기능은 추후 연결 예정입니다.')),
-                  );
-                },
-                child: SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: Image.asset(
-                    'assets/images/volunteer/with.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 100,
+              left: 37,
               top: 30.5,
               width: 30,
               height: 27.53,
@@ -964,46 +942,32 @@ class _VolunteerDetailScreenState extends State<VolunteerDetailScreen> {
               ),
             ),
             Positioned(
-              left: 163,
-              top: 17,
-              width: 209,
-              height: 54,
+              left: 96,
+              top: 18,
+              width: 294,
+              height: 52,
               child: OutlinedButton(
                 onPressed: _openApplyUrl,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFB1B3B9), width: 1),
+                  side: const BorderSide(color: Color(0xFF00A5DF), width: 1.5),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   backgroundColor: const Color(0xFFFFFFFF),
                   padding: EdgeInsets.zero,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 48,
-                      height: 28,
-                      child: Image.asset(
-                        'assets/images/volunteer/1365.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      '바로가기',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF2D3436),
-                        fontSize: 18,
-                        fontFamily: 'Pretendard Variable',
-                        fontWeight: FontWeight.w600,
-                        fontStyle: FontStyle.normal,
-                        height: 22.44 / 18,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ],
+                child: const Text(
+                  '1365 바로가기',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF00A5DF),
+                    fontSize: 19,
+                    fontFamily: 'Pretendard Variable',
+                    fontWeight: FontWeight.w500,
+                    fontStyle: FontStyle.normal,
+                    height: 23 / 19,
+                    letterSpacing: 0,
+                  ),
                 ),
               ),
             ),

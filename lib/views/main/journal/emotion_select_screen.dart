@@ -12,10 +12,12 @@ class EmotionSelectScreen extends StatefulWidget {
   State<EmotionSelectScreen> createState() => _EmotionSelectScreenState();
 }
 
-class _EmotionSelectScreenState extends State<EmotionSelectScreen> {
+class _EmotionSelectScreenState extends State<EmotionSelectScreen>
+    with SingleTickerProviderStateMixin {
   int? _selected;
   int? _activeEmotion;
   bool _navigating = false;
+  late final AnimationController _hoverPulseController;
 
   static const _items = <_EmotionItem>[
     _EmotionItem(
@@ -50,6 +52,21 @@ class _EmotionSelectScreenState extends State<EmotionSelectScreen> {
     ),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _hoverPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _hoverPulseController.dispose();
+    super.dispose();
+  }
+
   Future<void> _selectEmotion(int index) async {
     if (_navigating) return;
     setState(() {
@@ -57,7 +74,8 @@ class _EmotionSelectScreenState extends State<EmotionSelectScreen> {
       _activeEmotion = null;
       _navigating = true;
     });
-    await Future<void>.delayed(const Duration(milliseconds: 450));
+    // 가운데 이동/확대 연출 후 충분히 보여준 다음 다음 화면으로 이동
+    await Future<void>.delayed(const Duration(milliseconds: 3000));
     if (!mounted) return;
     final savedEntry = await Navigator.of(context).push<JournalEntry?>(
       MaterialPageRoute(
@@ -154,10 +172,15 @@ class _EmotionSelectScreenState extends State<EmotionSelectScreen> {
                     onExit: (_) => setState(() => _activeEmotion = null),
                     child: GestureDetector(
                       onTap: () => _selectEmotion(i),
-                      child: AnimatedScale(
-                        duration: const Duration(milliseconds: 140),
-                        curve: Curves.easeOutBack,
-                        scale: _activeEmotion == i ? 1.12 : 1.0,
+                      child: AnimatedBuilder(
+                        animation: _hoverPulseController,
+                        builder: (context, child) {
+                          final isHovering = _activeEmotion == i && _selected == null;
+                          final scale = isHovering
+                              ? (1.0 + 0.1 * _hoverPulseController.value)
+                              : 1.0;
+                          return Transform.scale(scale: scale, child: child);
+                        },
                         child: _EmotionBubble(item: _items[i], size: bubbleSize),
                       ),
                     ),

@@ -133,44 +133,42 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   color: const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(20 * sx),
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      SizedBox(height: 15 * sy),
-                      _EditableAddressRow(
-                        label: '이름',
-                        controller: _nameController,
-                        scale: sx,
-                        hintText: '이름 입력',
-                        onChanged: _saveName,
-                      ),
-                      SizedBox(height: 38 * sy),
-                      _EditableAddressRow(
-                        label: '아이디',
-                        controller: _idController,
-                        scale: sx,
-                        hintText: '아이디 입력',
-                        onChanged: _saveId,
-                      ),
-                      SizedBox(height: 38 * sy),
-                      _EditableAddressRow(
-                        label: '전화번호',
-                        controller: _phoneController,
-                        scale: sx,
-                        hintText: '전화번호 입력',
-                        onChanged: _savePhone,
-                      ),
-                      SizedBox(height: 38 * sy),
-                      _ProfileInfoRow(label: '이메일주소', value: _email, scale: sx),
-                      SizedBox(height: 38 * sy),
-                      _EditableAddressRow(
-                        label: '집주소',
-                        controller: _addressController,
-                        scale: sx,
-                        onChanged: _saveAddress,
-                      ),
-                    ],
-                  ),
+                child: Column(
+                  children: [
+                    SizedBox(height: 22 * sy),
+                    _EditableAddressRow(
+                      label: '이름',
+                      controller: _nameController,
+                      scale: sx,
+                      hintText: '이름 입력',
+                      onChanged: _saveName,
+                    ),
+                    SizedBox(height: 30 * sy),
+                    _EditableAddressRow(
+                      label: '아이디',
+                      controller: _idController,
+                      scale: sx,
+                      hintText: '아이디 입력',
+                      onChanged: _saveId,
+                    ),
+                    SizedBox(height: 30 * sy),
+                    _EditableAddressRow(
+                      label: '전화번호',
+                      controller: _phoneController,
+                      scale: sx,
+                      hintText: '전화번호 입력',
+                      onChanged: _savePhone,
+                    ),
+                    SizedBox(height: 30 * sy),
+                    _ProfileInfoRow(label: '이메일주소', value: _email, scale: sx),
+                    SizedBox(height: 30 * sy),
+                    _EditableAddressRow(
+                      label: '집주소',
+                      controller: _addressController,
+                      scale: sx,
+                      onChanged: _saveAddress,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -481,8 +479,8 @@ class _ProfileInfoRow extends StatelessWidget {
         Expanded(
           child: Text(
             value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+            softWrap: true,
             style: TextStyle(
               fontFamily: 'Pretendard Variable',
               fontSize: 14 * scale,
